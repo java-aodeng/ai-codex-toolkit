@@ -38,8 +38,16 @@ D:\work\ai-dev-rules\rules\coding-standards.mdc
 推荐这样使用：
 
 - 全局指令只负责约束“什么时候读取规则文件”。
-- 具体怎么查代码、何时优先使用 `codebase-memory-mcp`，统一放在 `coding-standards.mdc` 里维护。
+- 具体编码规范统一放在 `coding-standards.mdc` 里维护。
 - 涉及本地工程时，先读规则，再按规则执行；普通聊天不加载规则。
+
+## AI 指令目录
+
+```text
+ai-dev-rules/
+└── ai-instructions/
+    └── bugfix.md  # AI 批量修 Bug 的场景化执行指令
+```
 
 ## License
 
