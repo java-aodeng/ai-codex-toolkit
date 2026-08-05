@@ -48,7 +48,7 @@ D:\work\ai-dev-rules\rules\coding-standards.mdc
 ```text
 ai-dev-rules/
 └── ai-instructions/
-    └── bugfix.md  # AI 批量修 Bug 的场景化执行指令
+    └── bugfix.md  # AI 批量修 Bug 的场景化执行指令 ,可以做到ai自动读取bug 改bug，一晚上理论可以改5000个bug
 ```
 
 ## License
