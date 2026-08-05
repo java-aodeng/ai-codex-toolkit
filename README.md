@@ -31,6 +31,8 @@ ai-dev-rules/
 凡涉及本地项目、文件、代码、命令、排查、修改、review 的请求，默认读取：
 D:\work\ai-dev-rules\rules\coding-standards.mdc
 
+写skyte-ui-new 前端项目的时候，读取这个该项目的规范 D:\work\cloud-skyte\skyte-ui-new\AGENTS.md
+
 如果用户当前消息给出了项目路径，优先以该路径作为当前项目。
 如果只是普通聊天、解释概念、临时问答，不要主动读取规则文件。
 ```
