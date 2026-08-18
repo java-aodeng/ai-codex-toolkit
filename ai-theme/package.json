@@ -1,0 +1,10 @@
+{
+  "name": "ai-theme",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "apply": "node src/cli.mjs apply",
+    "pause": "node src/cli.mjs pause"
+  }
+}
