@@ -6,7 +6,7 @@
 
 ```text
 ai-dev-rules/
-├── rules/
+├── ai-rules/
 │   └── coding-standards.mdc  # 通用编码规范和协作约定
 ├── ai-instructions/
 │   └── bugfix.md             # AI 批量排查和修复 Bug 的执行指令
@@ -19,7 +19,7 @@ ai-dev-rules/
 
 ## 开发规范
 
-[`rules/coding-standards.mdc`](rules/coding-standards.mdc) 是日常开发任务唯一需要 AI 主动读取的规范文件，包含通用编码规范、协作约定、多项目识别方式和按技术栈生效的专项规则。
+[`ai-rules/coding-standards.mdc`](ai-rules/coding-standards.mdc) 是日常开发任务唯一需要 AI 主动读取的规范文件，包含通用编码规范、协作约定、多项目识别方式和按技术栈生效的专项规则。
 
 ### 使用方式
 
@@ -40,7 +40,7 @@ ai-dev-rules/
 不要在每个新会话自动读取规则文件。
 
 凡涉及本地项目、文件、代码、命令、排查、修改、review 的请求，默认读取：
-D:\work\ai-dev-rules\rules\coding-standards.mdc
+D:\work\ai-dev-rules\ai-rules\coding-standards.mdc
 
 写 skyte-ui-new 前端项目时，读取该项目规范：
 D:\work\cloud-skyte\skyte-ui-new\AGENTS.md

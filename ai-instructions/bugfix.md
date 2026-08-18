@@ -32,7 +32,7 @@
 三、代码处理规则
 
 1. 开始前读取：
-    - D:\work\ai-dev-rules\rules\coding-standards.mdc
+    - D:\work\ai-dev-rules\ai-rules\coding-standards.mdc
     - 如果修改 skyte-ui-new，再读取：
       D:\work\cloud-skyte\skyte-ui-new\AGENTS.md
 2. 不使用子代理，由当前会话直接处理。
