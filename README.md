@@ -1,16 +1,18 @@
-# ai-dev-rules
+# ai-codex-toolkit
 
-`ai-dev-rules` 用于集中维护 AI 编程规范、场景化执行指令和 Codex 桌面端主题，避免把规则分散在不同项目或全局配置中。
+`ai-codex-toolkit` 用于集中维护 AI 编程规范、场景化执行指令、技术方案和 Codex 桌面端主题，避免把内容分散在不同项目或全局配置中。
 
 ## 目录结构
 
 ```text
-ai-dev-rules/
-├── ai-rules/
+ai-codex-toolkit/
+├── ai-rules/             # AI 编码规范目录
 │   └── coding-standards.mdc  # 通用编码规范和协作约定
-├── ai-instructions/
+├── ai-instructions/      # 场景化执行指令目录
 │   └── bugfix.md             # AI 批量排查和修复 Bug 的执行指令
-└── ai-theme/
+├── ai-solutions/         # 可复用技术方案目录
+│   └── Elasticsearch大数据量索引与蓝绿迁移通用方案.md  # 可复用的 Elasticsearch 迁移方案
+└── ai-theme/             # Codex 桌面主题目录
     ├── apply.bat             # 实时应用 Codex 主题
     ├── pause.bat             # 移除主题并恢复原生界面
     ├── src/                  # 样式生成和无重启注入代码
@@ -23,7 +25,7 @@ ai-dev-rules/
 
 ### 使用方式
 
-把 `ai-dev-rules` 放到你的工作目录里，和业务项目同级即可。
+把 `ai-codex-toolkit` 放到你的工作目录里，和业务项目同级即可。
 
 在 Codex 全局指令中只配置规则入口和读取时机，具体编码要求统一在 `coding-standards.mdc` 中维护。
 
@@ -37,7 +39,7 @@ ai-dev-rules/
 
 不要在每个新会话自动读取编码规范。
 仅当用户明确要求查代码、按规范执行、排查本地项目、修改、修复、实现、重构或 review 本地源码、配置或脚本时，读取：
-D:\work\ai-dev-rules\ai-rules\coding-standards.mdc
+D:\work\ai-codex-toolkit\ai-rules\coding-standards.mdc
 
 仅询问原因、方案、可行性或优化思路，且未明确要求检查本地文件时，不读取编码规范，不搜索项目，也不运行命令。
 普通聊天、概念解释、资料查询、Git 操作、文件传输、环境查询及不修改配置的 Docker 操作，不加载编码规范。
@@ -63,6 +65,10 @@ D:\work\ai-dev-rules\ai-rules\coding-standards.mdc
 ## 场景化指令
 
 [`ai-instructions/bugfix.md`](ai-instructions/bugfix.md) 用于 AI 批量读取问题清单、定位代码并执行修复。它是特定任务的执行模板，不属于每次开发都要加载的通用规范。
+
+## 技术方案
+
+[`ai-solutions`](ai-solutions) 用于沉淀项目中可复用的架构设计、性能优化、数据迁移和问题解决方案。
 
 ## Codex 主题
 
