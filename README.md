@@ -9,7 +9,8 @@ ai-codex-toolkit/
 ├── ai-rules/             # AI 编码规范目录
 │   └── coding-standards.mdc  # 通用编码规范和协作约定
 ├── ai-instructions/      # 场景化执行指令目录
-│   └── bugfix.md             # AI 批量排查和修复 Bug 的执行指令
+│   ├── bugfix.md             # AI 批量排查和修复 Bug 的执行指令
+│   └── imagegen-sub2api.md   # 通过 Sub2API 配置 Codex 生图的执行指令
 ├── ai-solutions/         # 可复用技术方案目录
 │   └── Elasticsearch大数据量索引与蓝绿迁移通用方案.md  # 可复用的 Elasticsearch 迁移方案
 └── ai-theme/             # Codex 桌面主题目录
@@ -65,6 +66,8 @@ D:\work\ai-codex-toolkit\ai-rules\coding-standards.mdc
 ## 场景化指令
 
 [`ai-instructions/bugfix.md`](ai-instructions/bugfix.md) 用于 AI 批量读取问题清单、定位代码并执行修复。它是特定任务的执行模板，不属于每次开发都要加载的通用规范。
+
+[`ai-instructions/imagegen-sub2api.md`](ai-instructions/imagegen-sub2api.md) 用于在 Windows 上配置 Codex 通过用户提供的 Sub2API 中转站调用图片模型，并完成备份、依赖检查和无费用 dry-run 验证。
 
 ## 技术方案
 
