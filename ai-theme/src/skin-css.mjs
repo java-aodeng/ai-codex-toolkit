@@ -57,6 +57,7 @@ export function buildSkinCss({ theme, heroDataUrl, logoDataUrl = null, polaroidD
   --color-background-editor-opaque: var(--heige-raised) !important;
   --color-background-control: var(--heige-raised) !important;
   --color-background-control-opaque: var(--heige-raised) !important;
+  --color-background-composer-action-bar: var(--heige-raised) !important;
   --color-background-surface-under: var(--heige-surface) !important;
   --color-background-button-primary: var(--heige-accent) !important;
   --color-text-foreground: var(--heige-text) !important;
