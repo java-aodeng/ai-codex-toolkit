@@ -74,7 +74,7 @@ D:\work\ai-codex-toolkit\ai-rules\coding-standards.mdc
 
 ## 技术方案
 
-[`ai-solutions`](ai-solutions) 用于沉淀项目中可复用的架构设计、性能优化、数据迁移和问题解决方案。
+[`ai-solutions/Elasticsearch大数据量索引与蓝绿迁移通用方案.md`](ai-solutions/Elasticsearch大数据量索引与蓝绿迁移通用方案.md) 用于指导 Elasticsearch 大数据量场景下的索引设计、数据同步、蓝绿切换、校验和回滚。
 
 ## Codex 主题
 
