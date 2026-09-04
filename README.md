@@ -68,7 +68,7 @@ D:\work\ai-codex-toolkit\ai-rules\coding-standards.mdc
 
 [`ai-instructions/bugfix.md`](ai-instructions/bugfix.md) 用于 AI 批量读取问题清单、定位代码并执行修复。它是特定任务的执行模板，不属于每次开发都要加载的通用规范。
 
-[`ai-instructions/imagegen-sub2api.md`](ai-instructions/imagegen-sub2api.md) 用于在 Windows 上配置 Codex 通过用户提供的 Sub2API 中转站调用图片模型，并完成备份、依赖检查和无费用 dry-run 验证。
+[`ai-instructions/imagegen-sub2api.md`](ai-instructions/imagegen-sub2api.md) 用于在 Windows 环境下配置 Codex 通过 Sub2API 调用图片生成模型，并完成环境与接口验证。
 
 [`ai-instructions/漫画制作统一规范.md`](ai-instructions/漫画制作统一规范.md) 用于统一漫画项目的剧情整理、分镜、生图、返修、质检、交付和归档要求。
 
