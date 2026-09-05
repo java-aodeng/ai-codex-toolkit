@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "apply": "node src/cli.mjs apply",
+    "start": "node src/cli.mjs start",
     "pause": "node src/cli.mjs pause"
   }
 }

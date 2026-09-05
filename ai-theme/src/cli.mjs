@@ -4,6 +4,8 @@ import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path
 import { fileURLToPath } from "node:url";
 
 import { DEFAULT_CDP_PORT } from "./constants.mjs";
+import { launchThemedCodex } from "./codex-launcher.mjs";
+import { waitForRendererTargets } from "./cdp-client.mjs";
 import { applyTheme, removeTheme } from "./injector.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -68,12 +70,21 @@ async function main() {
     console.log(`主题 ${theme.manifest.id} 已实时应用到 ${result.applied} 个 Codex 窗口，无需重启。`);
     return;
   }
+  if (command === "start") {
+    const theme = await loadTheme();
+    await launchThemedCodex(port);
+    console.log("Codex 已启动，正在等待主题接口……");
+    await waitForRendererTargets(port, { timeoutMs: 30_000 });
+    const result = await applyTheme({ ...theme, port });
+    console.log(`主题 ${theme.manifest.id} 已应用到 ${result.applied} 个 Codex 窗口。`);
+    return;
+  }
   if (command === "pause") {
     const result = await removeTheme({ port });
     console.log(`主题已从 ${result.removed} 个 Codex 窗口移除。`);
     return;
   }
-  throw new Error(`未知命令：${command}，仅支持 apply 或 pause`);
+  throw new Error(`未知命令：${command}，仅支持 apply、start 或 pause`);
 }
 
 main().catch((error) => {

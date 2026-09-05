@@ -77,7 +77,8 @@ async function evaluateWithFallback({ port, expression, includeOverlay, operatio
   } catch (fallbackError) {
     throw new Error(
       `${operation}失败：渲染调试端口不可用（${errorMessage(primaryError)}）；` +
-        `主进程实时注入也失败（${errorMessage(fallbackError)}）`,
+        `主进程实时注入也失败（${errorMessage(fallbackError)}）。` +
+        "若使用最新版 Codex，请先从托盘完全退出，再运行 start-themed.bat。",
       { cause: new AggregateError([primaryError, fallbackError]) },
     );
   }
