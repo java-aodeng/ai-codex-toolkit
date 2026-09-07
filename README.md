@@ -10,8 +10,7 @@ ai-codex-toolkit/
 │   └── coding-standards.mdc  # 通用编码规范和协作约定
 ├── ai-instructions/      # 场景化指令目录
 │   ├── bugfix.md             # AI 批量排查和修复 Bug 的执行指令
-│   ├── imagegen-sub2api.md   # 通过 Sub2API 配置 Codex 生图的执行指令
-│   └── 漫画制作统一规范.md    # 漫画制作全流程规范
+│   └── imagegen-sub2api.md   # 通过 Sub2API 配置 Codex 生图的执行指令
 ├── ai-solutions/         # 技术方案目录
 │   └── Elasticsearch大数据量索引与蓝绿迁移通用方案.md  # 可复用的 Elasticsearch 迁移方案
 └── ai-theme/             # Codex 主题目录
@@ -69,8 +68,6 @@ D:\work\ai-codex-toolkit\ai-rules\coding-standards.mdc
 [`ai-instructions/bugfix.md`](ai-instructions/bugfix.md) 用于 AI 批量读取问题清单、定位代码并执行修复。它是特定任务的执行模板，不属于每次开发都要加载的通用规范。
 
 [`ai-instructions/imagegen-sub2api.md`](ai-instructions/imagegen-sub2api.md) 用于在 Windows 环境下配置 Codex 通过 Sub2API 调用图片生成模型，并完成环境与接口验证。
-
-[`ai-instructions/漫画制作统一规范.md`](ai-instructions/漫画制作统一规范.md) 用于统一漫画项目的剧情整理、分镜、生图、返修、质检、交付和归档要求。
 
 ## 技术方案
 
