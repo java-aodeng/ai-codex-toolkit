@@ -17,7 +17,7 @@ ai-codex-toolkit/
     ├── apply.bat             # 实时应用 Codex 主题
     ├── pause.bat             # 移除主题并恢复原生界面
     ├── src/                  # 样式生成和无重启注入代码
-    └── theme/                # 主题配置及图片资源
+    └── themes/               # 按 miku、dark-gold 分目录存放主题配置及图片
 ```
 
 ## AI 编码规范
@@ -77,7 +77,7 @@ D:\work\ai-codex-toolkit\ai-rules\coding-standards.mdc
 
 - 运行 `ai-theme/apply.bat`：向当前 Codex 窗口实时应用主题，无需重启。
 - 运行 `ai-theme/pause.bat`：移除主题并恢复原生界面。
-- 修改 `ai-theme/theme`：调整主题配色、背景和装饰图片。
+- 修改 `ai-theme/themes` 中对应主题目录：调整主题配色、背景和装饰图片。
 
 Codex 更新或完全退出后，运行时注入会被清除，需要再次运行 `apply.bat`。该目录是附加工具，普通代码任务不需要读取。
 

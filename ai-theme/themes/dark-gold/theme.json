@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "dark-gold",
+  "name": "暗金",
+  "mode": "dark",
+  "hero": "hero.webp",
+  "colors": {
+    "accent": "#c9aa72",
+    "secondary": "#8fa7a0",
+    "surface": "#1c1e21",
+    "text": "#e0e2e5"
+  }
+}

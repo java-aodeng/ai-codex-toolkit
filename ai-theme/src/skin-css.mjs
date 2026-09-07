@@ -36,10 +36,11 @@ export function buildSkinCss({ theme, heroDataUrl, logoDataUrl = null, polaroidD
     text: color(theme.colors?.text, DEFAULT_COLORS.text),
   };
   const id = String(theme.id ?? "custom").replace(/[^a-z0-9_-]/gi, "");
+  const dark = theme.mode === "dark";
 
   return `/* HEIGE_CODEX_SKIN:${id} */
 :root[data-codex-window-type="electron"] {
-  color-scheme: light !important;
+  color-scheme: ${dark ? "dark" : "light"} !important;
   --heige-accent: ${colors.accent};
   --heige-secondary: ${colors.secondary};
   --heige-surface: ${colors.surface};
@@ -69,8 +70,8 @@ export function buildSkinCss({ theme, heroDataUrl, logoDataUrl = null, polaroidD
   background:
 ${polaroidDataUrl === null ? "" : `    url(${JSON.stringify(polaroidDataUrl)}) right 20px bottom 24px / 200px 300px no-repeat fixed,
 `}
-    linear-gradient(90deg, color-mix(in srgb, var(--heige-surface) 96%, transparent) 0 22%, transparent 46%),
-    linear-gradient(180deg, transparent 0 45%, color-mix(in srgb, var(--heige-surface) 78%, transparent) 78% 100%),
+    linear-gradient(90deg, color-mix(in srgb, var(--heige-surface) ${dark ? 25 : 96}%, transparent) 0 22%, transparent 46%),
+    linear-gradient(180deg, transparent 0 45%, color-mix(in srgb, var(--heige-surface) ${dark ? 15 : 78}%, transparent) 78% 100%),
 ${id === "miku-488137" ? `    linear-gradient(180deg, color-mix(in srgb, var(--heige-text) 6%, transparent), color-mix(in srgb, var(--heige-text) 9%, transparent)),
 ` : ""}
     url(${JSON.stringify(heroDataUrl)}) right center / cover no-repeat fixed !important;
@@ -158,5 +159,61 @@ ${logoDataUrl === null ? "" : `
 .app-shell-left-panel button[aria-haspopup="menu"][aria-label*="ChatGPT"] > svg {
   visibility: hidden;
 }
-`}`;
+`}
+${dark ? `
+/* 暗色阅读层压低背景亮部，保留留白区域的原图。 */
+:root[data-codex-window-type="electron"] {
+  --heige-raised: #48443e;
+  --heige-raised-soft: #3c3935;
+  --app-shell-panel-background: transparent !important;
+  --color-text-secondary: #cec9c0 !important;
+  --color-text-tertiary: #bdb7ad !important;
+  --color-text-primary: var(--heige-text) !important;
+  --color-text-inverted: #17191c !important;
+  --color-border: #686055 !important;
+}
+.app-shell-left-panel {
+  background: linear-gradient(180deg, rgba(43, 44, 46, 0.78), rgba(43, 44, 46, 0.64)) !important;
+  border-right-color: rgba(201, 170, 114, 0.18) !important;
+}
+.app-shell-left-panel [data-app-action-sidebar-thread-active="true"] {
+  background: rgba(201, 170, 114, 0.13) !important;
+  box-shadow: inset 2px 0 rgba(201, 170, 114, 0.55) !important;
+}
+/* 面板父子容器共用背景变量，只在内部阅读层着色，避免透明度叠加。 */
+.relative[class*="bg-[var(--app-shell-panel-background"] {
+  background: rgba(61, 57, 51, 0.78) !important;
+}
+main[class*="_MainContentSurface_"], .main-surface, .browser-main-surface {
+  background: color-mix(in srgb, var(--heige-surface) 30%, transparent) !important;
+  box-shadow: none !important;
+}
+[data-codex-composer-root] [data-composer-surface-variant="default"],
+.composer-surface-chrome, [data-user-message-bubble],
+[data-local-conversation-final-assistant], [data-codex-approval-surface] {
+  background: rgba(60, 57, 53, 0.90) !important;
+  border-color: rgba(201, 170, 114, 0.32) !important;
+  box-shadow: none !important;
+}
+[data-codex-composer-root] [data-composer-surface-variant="default"],
+.composer-surface-chrome {
+  background: linear-gradient(180deg, rgba(57, 58, 60, 0.86), rgba(43, 44, 46, 0.82)) !important;
+  border-color: rgba(201, 170, 114, 0.24) !important;
+  box-shadow: inset 0 1px rgba(218, 204, 177, 0.12) !important;
+}
+[data-codex-composer-root] {
+  --color-background-composer-action-bar: #393a3c !important;
+  --color-background-elevated-primary: #393a3c !important;
+  --color-background-elevated-primary-opaque: #393a3c !important;
+}
+pre, pre code, .monaco-editor, .monaco-editor-background {
+  background-color: #292825 !important;
+}
+pre, pre code { color: #dce0e6 !important; }
+:not(pre) > code { background-color: #4a4741 !important; color: #d5dfda !important; }
+textarea, [contenteditable="true"] { color: var(--heige-text) !important; caret-color: var(--heige-accent); }
+textarea::placeholder, input::placeholder { color: #c1baaf !important; }
+a { color: #d5bb8b !important; }
+::selection { background: #695b40; color: #f1f2f3; }
+` : ""}`;
 }

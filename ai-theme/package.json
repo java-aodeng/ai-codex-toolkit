@@ -6,6 +6,7 @@
   "scripts": {
     "apply": "node src/cli.mjs apply",
     "start": "node src/cli.mjs start",
+    "switch": "node src/cli.mjs switch",
     "pause": "node src/cli.mjs pause"
   }
 }
