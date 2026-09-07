@@ -14,10 +14,14 @@ ai-codex-toolkit/
 ├── ai-solutions/         # 技术方案目录
 │   └── Elasticsearch大数据量索引与蓝绿迁移通用方案.md  # 可复用的 Elasticsearch 迁移方案
 └── ai-theme/             # Codex 主题目录
-    ├── apply.bat             # 实时应用 Codex 主题
+    ├── start-themed.bat      # 启动 Codex 并恢复上次主题
+    ├── apply.bat             # 实时重新应用当前主题
+    ├── switch-theme.bat      # 选择初音或暗金主题
     ├── pause.bat             # 移除主题并恢复原生界面
-    ├── src/                  # 样式生成和无重启注入代码
-    └── themes/               # 按 miku、dark-gold 分目录存放主题配置及图片
+    ├── src/                  # 主题加载、启动和运行时注入代码
+    └── themes/               # 主题配置及图片资源
+        ├── miku/             # 初音主题
+        └── dark-gold/        # 暗金主题
 ```
 
 ## AI 编码规范
@@ -73,13 +77,25 @@ D:\work\ai-codex-toolkit\ai-rules\coding-standards.mdc
 
 ## Codex 主题
 
-[`ai-theme`](ai-theme) 是独立的 Codex 桌面端主题源码，采用运行时注入，不需要安装到 Codex，也不会修改 Codex 安装目录。
+[`ai-theme`](ai-theme) 提供初音和暗金两套 Codex 桌面端主题，共用启动、注入和切换逻辑，不需要安装到 Codex，也不会修改 Codex 安装目录。当前启动脚本适用于 Windows 商店版 Codex，需要 PATH 中可用的 Node.js。
 
-- 运行 `ai-theme/apply.bat`：向当前 Codex 窗口实时应用主题，无需重启。
-- 运行 `ai-theme/pause.bat`：移除主题并恢复原生界面。
-- 修改 `ai-theme/themes` 中对应主题目录：调整主题配色、背景和装饰图片。
+### 启动与切换
 
-Codex 更新或完全退出后，运行时注入会被清除，需要再次运行 `apply.bat`。该目录是附加工具，普通代码任务不需要读取。
+1. 从托盘完全退出 Codex，再运行 [`start-themed.bat`](ai-theme/start-themed.bat)，脚本会定位当前安装版本，以调试端口启动并自动加载主题。
+2. 运行 [`switch-theme.bat`](ai-theme/switch-theme.bat)，输入 `1` 选择初音、`2` 选择暗金，`0` 取消；同一次运行期间切换立即生效，无需重启。
+3. 修改样式后运行 [`apply.bat`](ai-theme/apply.bat) 重新应用当前主题；运行 [`pause.bat`](ai-theme/pause.bat) 临时恢复原生界面。
+
+首次默认初音；切换成功后记住选择，下次通过 `start-themed.bat` 启动时自动恢复。选择保存在本地 `ai-theme/.selected-theme.json`，不提交 Git，暂停主题不会清除选择。
+
+普通方式启动的部分新版 Codex 无法直接注入，需要完全退出后改用 `start-themed.bat` 启动。Codex 更新或完全退出会清除临时注入；后续继续使用主题启动器，新建窗口后可运行 `apply.bat` 重新应用。
+
+### 主题资源
+
+- [`themes/miku`](ai-theme/themes/miku)：保留初音背景、Logo 和贴图，内部主题 ID 为 `miku-488137`。
+- [`themes/dark-gold`](ai-theme/themes/dark-gold)：暗金壁纸与暗色配色，背景使用 2560×1440 WebP，约 350 KiB。
+- 各主题的 `theme.json` 维护配色与图片路径；共用样式在 [`src/skin-css.mjs`](ai-theme/src/skin-css.mjs)。
+
+完整说明见 [`ai-theme/README.md`](ai-theme/README.md)。该目录是附加工具，普通代码任务不需要读取。
 
 ## License
 
