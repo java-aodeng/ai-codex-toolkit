@@ -92,7 +92,7 @@ D:\work\ai-codex-toolkit\ai-rules\coding-standards.mdc
 ### 主题资源
 
 - [`themes/miku`](ai-theme/themes/miku)：保留初音背景、Logo 和贴图，内部主题 ID 为 `miku-488137`。
-- [`themes/dark-gold`](ai-theme/themes/dark-gold)：暗金壁纸与暗色配色，背景使用 2560×1440 WebP，约 350 KiB。
+- [`themes/dark-gold`](ai-theme/themes/dark-gold)：左侧带星空的暗金壁纸与暗色配色，背景使用 2560×1440 WebP，约 427 KiB。
 - 各主题的 `theme.json` 维护配色与图片路径；共用样式在 [`src/skin-css.mjs`](ai-theme/src/skin-css.mjs)。
 
 完整说明见 [`ai-theme/README.md`](ai-theme/README.md)。该目录是附加工具，普通代码任务不需要读取。

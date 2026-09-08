@@ -206,6 +206,31 @@ main[class*="_MainContentSurface_"], .main-surface, .browser-main-surface {
   --color-background-elevated-primary: #393a3c !important;
   --color-background-elevated-primary-opaque: #393a3c !important;
 }
+/* 首页快捷卡片与项目栏统一底色，保留原有尺寸和点击行为。 */
+button[aria-labelledby].min-h-26:has(svg[class*="text-chart-"]) {
+  background: rgba(60, 57, 53, 0.86) !important;
+  border-color: rgba(201, 170, 114, 0.22) !important;
+  box-shadow: inset 0 0 0 1px rgba(201, 170, 114, 0.18) !important;
+}
+button[aria-labelledby].min-h-26:has(svg[class*="text-chart-"]):hover:not(:disabled) {
+  background: rgba(74, 68, 59, 0.92) !important;
+}
+button[aria-labelledby].min-h-26:has(svg[class*="text-chart-"]):focus-visible {
+  outline: 2px solid var(--heige-accent) !important;
+  outline-offset: 2px;
+}
+[data-codex-composer-root] [data-composer-placement="home"][data-composer-rail-variant="controls"] {
+  background: rgba(60, 57, 53, 0.86) !important;
+  box-shadow: inset 0 1px rgba(201, 170, 114, 0.18) !important;
+}
+/* 上下文用量圆环独立配色，不依赖原生深色描述文字。 */
+[data-codex-composer-root] [role="img"]:has(svg circle[pathLength="100"]) {
+  color: #edcf96 !important;
+}
+[data-codex-composer-root] [role="img"]:has(svg circle[pathLength="100"]) circle:not([pathLength]) {
+  stroke: #a5adb7 !important;
+  opacity: 0.65 !important;
+}
 pre, pre code, .monaco-editor, .monaco-editor-background {
   background-color: #292825 !important;
 }
