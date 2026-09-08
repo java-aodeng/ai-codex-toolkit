@@ -223,6 +223,14 @@ button[aria-labelledby].min-h-26:has(svg[class*="text-chart-"]):focus-visible {
   background: rgba(60, 57, 53, 0.86) !important;
   box-shadow: inset 0 1px rgba(201, 170, 114, 0.18) !important;
 }
+/* 对话定位刻度与上下文用量圆环保持同色，避免原生黑色叠加透明度。 */
+[data-thread-user-message-navigation-item-id] [class*="_Marker_"] {
+  color: #edcf96 !important;
+  opacity: 0.75 !important;
+}
+[data-thread-user-message-navigation-item-id]:is(:hover, :focus-visible) [class*="_Marker_"] {
+  opacity: 1 !important;
+}
 /* 上下文用量圆环独立配色，不依赖原生深色描述文字。 */
 [data-codex-composer-root] [role="img"]:has(svg circle[pathLength="100"]) {
   color: #edcf96 !important;
