@@ -1,5 +1,29 @@
 # Codex 通过 Sub2API 配置生图
 
+## 当前机器已验证的客户端兼容方式（2026-09-11）
+
+当 `/v1/images/generations` 返回 `gpt-5.4-mini` 不支持 ChatGPT 账号的错误时，使用下述独立客户端。此兼容方式优先于本文后续的旧 `image_gen.py` 调用方式；后续章节仍保留作原配置记录，不要因此重新配置聊天主模型。
+
+- 客户端：`D:\codex-work\tools\sub2api_image_responses.py`，仅使用 Python 标准库。
+- 请求接口：从进程环境变量 `OPENAI_BASE_URL` 构造 `/v1/responses`；密钥读取 `OPENAI_API_KEY`，不写入文件或输出。
+- 主控模型：`gpt-5.6-terra`；工具：`image_generation`；图片模型：`gpt-image-2`。
+- 默认测试参数：1024×1024、low 质量、PNG。一次调用请求生成一张图片，不自动重试。
+- 输出目录：`D:\codex-work\output\imagegen`。文件名包含时间戳，保留图片及不含密钥的结果报告，不覆盖已有文件。
+- 已验证：HTTP 200、`response.completed`、一张有效 PNG，约 75.7 秒。请求尺寸为 1024×1024，上游实际返回 1254×1254，因此不能保证此兼容通道严格遵循尺寸参数。该结果验证了现有 Key 对应路由，未确认后台具体使用了哪个账号。
+- 当前会话已经取得用户对现有 HTTP 中转传输密钥和实际生图测试的明确授权；不要将此记录理解为对不同地址或任意后续请求的自动授权。
+
+当前电脑的 PowerShell 调用方法（每次实际执行可能消耗额度）：
+
+```powershell
+& 'C:\Users\admin\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' `
+  'D:\codex-work\tools\sub2api_image_responses.py' `
+  --prompt 'A single red apple on a plain white background, product photography, no text.'
+```
+
+追加 `--dry-run` 只检查请求，不发送生图请求。新终端如果缺少环境变量，应先恢复原有中转配置，不要将完整密钥粘贴到聊天或文档中。Python 路径为本次发现的运行时，运行时升级后需要重新确认。
+
+本次测试报告：`D:\codex-work\output\imagegen\sub2api-responses-20260911-000226-705105.json`。
+
 请在当前 Windows 电脑上将 Codex 配置为通过用户提供的 Sub2API 中转站生成图片，并直接完成配置和验证，不要只提供教程。
 
 ## 一、执行输入
