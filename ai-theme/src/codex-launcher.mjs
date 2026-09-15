@@ -36,13 +36,14 @@ export async function findCodexExecutable({ env = process.env, exec = execFileAs
   return executable;
 }
 
-// 返回新启动的程序路径；已有 Codex 时返回 null，由调用方直接应用主题。
-export async function launchThemedCodex(port, { exec = execFileAsync } = {}) {
+// 返回新启动的程序路径；已有 Codex 时返回 null，由调用方应用或移除主题。
+export async function launchThemedCodex(port, { exec = execFileAsync, native = false } = {}) {
   const running = await findCodexMainProcessIds();
   if (running.length > 0) return null;
 
   const executable = await findCodexExecutable({ exec });
-  const command = `Start-Process -FilePath '${executable.replaceAll("'", "''")}' -ArgumentList '--remote-debugging-port=${port}'`;
+  const argumentsOption = native ? "" : ` -ArgumentList '--remote-debugging-port=${port}'`;
+  const command = `Start-Process -FilePath '${executable.replaceAll("'", "''")}'${argumentsOption}`;
   await exec(
     powershellPath(),
     ["-NoProfile", "-NonInteractive", "-Command", command],

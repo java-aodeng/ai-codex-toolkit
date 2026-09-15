@@ -1,4 +1,5 @@
 import { HEX_COLOR } from "./constants.mjs";
+import { mikuCompatibilityCss } from "../themes/miku/skin-css.mjs";
 
 const DEFAULT_COLORS = {
   accent: "#24c9d7",
@@ -160,7 +161,7 @@ ${logoDataUrl === null ? "" : `
   visibility: hidden;
 }
 `}
-${dark ? `
+${id === "miku-488137" && !dark ? mikuCompatibilityCss : ""}${dark ? `
 /* 暗色阅读层压低背景亮部，保留留白区域的原图。 */
 :root[data-codex-window-type="electron"] {
   --heige-raised: #48443e;

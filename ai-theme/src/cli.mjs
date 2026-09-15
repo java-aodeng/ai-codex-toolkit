@@ -67,7 +67,7 @@ async function loadTheme(key) {
 async function selectedTheme() {
   try {
     const { theme } = JSON.parse(await readFile(selectionPath, "utf8"));
-    if (!Object.hasOwn(themeDirectories, theme)) throw new Error("已保存的主题不存在，请运行 start-themed.bat 重新选择");
+    if (theme !== "none" && !Object.hasOwn(themeDirectories, theme)) throw new Error("已保存的主题不存在，请运行 start-themed.bat 重新选择");
     return theme;
   } catch (error) {
     if (error.code === "ENOENT") return "miku";
@@ -80,11 +80,11 @@ async function chooseTheme(args) {
   if (index >= 0) return args[index + 1];
   const input = createInterface({ input: process.stdin, output: process.stdout });
   try {
-    console.log("1. 初音\n2. 暗金\n0. 取消");
-    const answer = (await input.question("请选择主题 [1/2/0]：")).trim();
+    console.log("1. 初音\n2. 暗金\n3. Codex 默认（不使用主题）\n0. 取消");
+    const answer = (await input.question("请选择主题 [1/2/3/0]：")).trim();
     if (answer === "0") return null;
-    const key = { "1": "miku", "2": "dark-gold" }[answer];
-    if (!key) throw new Error("请输入 1、2 或 0");
+    const key = { "1": "miku", "2": "dark-gold", "3": "none" }[answer];
+    if (!key) throw new Error("请输入 1、2、3 或 0");
     return key;
   } finally {
     input.close();
@@ -98,9 +98,20 @@ async function main() {
   if (command === "switch" || command === "start") {
     const key = await chooseTheme(args);
     if (key === null) return;
-    const theme = await loadTheme(key);
+    const theme = key === "none" ? null : await loadTheme(key);
+    const launched = command === "start" && await launchThemedCodex(port, { native: key === "none" });
+    if (key === "none") {
+      // 原生启动无需调试端口；已有窗口则清除样式和布局监听。
+      if (!launched) {
+        const result = await removeTheme({ port });
+        if (result.failed.length) throw new Error("部分窗口未能恢复默认外观，请重试；未保存主题选择。");
+      }
+      await writeFile(selectionPath, JSON.stringify({ theme: key }) + "\n", "utf8");
+      console.log("已恢复 Codex 默认外观，不使用自定义主题。");
+      return;
+    }
     // 已运行时直接切换；新启动时等待窗口就绪后再应用所选主题。
-    if (command === "start" && await launchThemedCodex(port)) {
+    if (launched) {
       console.log("Codex 已启动，正在等待主题接口……");
       await waitForRendererTargets(port, { timeoutMs: 30_000 });
     }
@@ -110,7 +121,14 @@ async function main() {
     return;
   }
   if (command === "apply") {
-    const theme = await loadTheme(await selectedTheme());
+    const key = await selectedTheme();
+    if (key === "none") {
+      const result = await removeTheme({ port });
+      if (result.failed.length) throw new Error("部分窗口未能恢复默认外观，请重试。");
+      console.log("已恢复 Codex 默认外观，不使用自定义主题。");
+      return;
+    }
+    const theme = await loadTheme(key);
     const result = await applyTheme({ ...theme, port });
     console.log(`主题 ${theme.manifest.id} 已实时应用到 ${result.applied} 个 Codex 窗口，无需重启。`);
     return;
