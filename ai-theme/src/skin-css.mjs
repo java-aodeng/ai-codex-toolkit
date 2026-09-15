@@ -165,7 +165,6 @@ ${dark ? `
 :root[data-codex-window-type="electron"] {
   --heige-raised: #48443e;
   --heige-raised-soft: #3c3935;
-  --heige-reading-font-size: calc(var(--codex-chat-font-size) + 2px);
   --app-shell-panel-background: transparent !important;
   --color-text-secondary: #cec9c0 !important;
   --color-text-tertiary: #bdb7ad !important;
@@ -174,60 +173,81 @@ ${dark ? `
   --color-border: #686055 !important;
 }
 .app-shell-left-panel {
-  background: linear-gradient(180deg, rgba(43, 44, 46, 0.78), rgba(43, 44, 46, 0.64)) !important;
+  background: transparent !important;
   border-right-color: rgba(201, 170, 114, 0.18) !important;
 }
 .app-shell-left-panel [data-app-action-sidebar-thread-active="true"] {
   background: rgba(201, 170, 114, 0.13) !important;
   box-shadow: inset 2px 0 rgba(201, 170, 114, 0.55) !important;
 }
-/* 面板父子容器共用背景变量，只在内部阅读层着色，避免透明度叠加。 */
+/* 对话面板与主内容区保持透明，让消息框之间露出壁纸。 */
 .relative[class*="bg-[var(--app-shell-panel-background"] {
-  background: rgba(61, 57, 51, 0.78) !important;
+  background: transparent !important;
 }
 main[class*="_MainContentSurface_"], .main-surface, .browser-main-surface {
-  background: color-mix(in srgb, var(--heige-surface) 30%, transparent) !important;
+  background: transparent !important;
   box-shadow: none !important;
 }
-[data-codex-composer-root] [data-composer-surface-variant="default"],
-.composer-surface-chrome, [data-codex-approval-surface] {
+[data-codex-approval-surface] {
   background: rgba(60, 57, 53, 0.90) !important;
   border-color: rgba(201, 170, 114, 0.32) !important;
   box-shadow: none !important;
 }
-/* 连续阅读层仅柔化正文后方壁纸，渐隐边缘避免形成硬边面板。 */
-[data-thread-user-message-navigation-content] {
-  isolation: isolate;
-  --codex-chat-font-size: var(--heige-reading-font-size);
+/* 右侧面板、标签底板和新增按钮底座透出壁纸。 */
+[data-app-shell-focus-area="right-panel"] .bg-surface,
+[data-app-shell-tab-strip-controller="right"] [data-tab-id][role="button"],
+[data-app-shell-tab-strip-controller="right"] [class*="--app-shell-tab-background"] {
+  background: transparent !important;
 }
-[data-thread-user-message-navigation-content]::before {
-  content: "";
-  position: absolute;
-  inset: 0 -32px;
-  z-index: -1;
-  pointer-events: none;
-  background: rgba(20, 22, 25, 0.28);
-  backdrop-filter: blur(3px);
-  mask-image: linear-gradient(90deg, transparent, black 48px, black calc(100% - 48px), transparent);
+[data-app-shell-tab-strip-controller="right"] > [aria-hidden="true"]::after {
+  background: none !important;
 }
-/* 连续阅读层上只保留淡消息底板，避免重复压暗。 */
+/* 选中与悬停用细线提示，不再叠加黑色底板。 */
+[data-app-shell-tab-strip-controller="right"] [data-tab-id][role="button"]:hover {
+  box-shadow: inset 0 -1px color-mix(in srgb, var(--heige-accent) 35%, transparent);
+}
+[data-app-shell-tab-strip-controller="right"] [data-tab-id][role="button"]:has([role="tab"][aria-selected="true"]) {
+  box-shadow: inset 0 -2px color-mix(in srgb, var(--heige-accent) 65%, transparent);
+}
+/* 移除对话底部横向渐变遮罩，让输入框两侧继续透出壁纸。 */
+.thread-scroll-container .sticky.bottom-0 > .pointer-events-none.bg-gradient-to-t.from-surface.via-surface {
+  background: transparent !important;
+}
+/* 根据输入框位置裁切滚动消息，避免正文与输入区重叠。 */
+.thread-scroll-container > [style*="--heige-thread-clip-bottom"] {
+  clip-path: inset(0 0 var(--heige-thread-clip-bottom, 0px) 0);
+}
+/* 首页顶部渐变不再形成独立的深色横条。 */
+:root:has([data-codex-composer-root][data-composer-placement="home"]) [data-app-shell-main-content-top-fade] {
+  background: transparent !important;
+}
+/* 消息框保留原有的淡底色。 */
 [data-user-message-bubble], [data-local-conversation-final-assistant] {
-  background: rgba(28, 30, 33, 0.10) !important;
+  background: rgba(61, 57, 51, 0.30) !important;
+  backdrop-filter: none !important;
   border-color: transparent !important;
   box-shadow: none !important;
 }
+/* 首页输入框与项目行沿用对话页输入框的深灰渐变。 */
+[data-codex-composer-root] [data-composer-surface-variant="default"],
+.composer-surface-chrome,
+[data-codex-composer-root] [data-composer-rail-variant="controls"],
+[data-codex-composer-root] [data-composer-rail-variant="default"] {
+  background: linear-gradient(180deg, rgba(57, 58, 60, 0.86), rgba(43, 44, 46, 0.82)) !important;
+  backdrop-filter: none !important;
+}
 [data-codex-composer-root] [data-composer-surface-variant="default"],
 .composer-surface-chrome {
-  background: linear-gradient(180deg, rgba(57, 58, 60, 0.86), rgba(43, 44, 46, 0.82)) !important;
+  --composer-layout-surface-background: transparent !important;
   border-color: rgba(201, 170, 114, 0.24) !important;
   box-shadow: inset 0 1px rgba(218, 204, 177, 0.12) !important;
 }
 [data-codex-composer-root] {
-  --color-background-composer-action-bar: #393a3c !important;
-  --color-background-elevated-primary: #393a3c !important;
-  --color-background-elevated-primary-opaque: #393a3c !important;
+  --color-background-composer-action-bar: transparent !important;
+  --color-background-elevated-primary: var(--heige-raised) !important;
+  --color-background-elevated-primary-opaque: var(--heige-raised) !important;
 }
-/* 首页快捷卡片与项目栏统一底色，保留原有尺寸和点击行为。 */
+/* 首页快捷卡片保留原有尺寸和点击行为。 */
 button[aria-labelledby].min-h-26:has(svg[class*="text-chart-"]) {
   background: rgba(60, 57, 53, 0.86) !important;
   border-color: rgba(201, 170, 114, 0.22) !important;
@@ -241,7 +261,6 @@ button[aria-labelledby].min-h-26:has(svg[class*="text-chart-"]):focus-visible {
   outline-offset: 2px;
 }
 [data-codex-composer-root] [data-composer-placement="home"][data-composer-rail-variant="controls"] {
-  background: rgba(60, 57, 53, 0.86) !important;
   box-shadow: inset 0 1px rgba(201, 170, 114, 0.18) !important;
 }
 /* 对话定位刻度与上下文用量圆环保持同色，避免原生黑色叠加透明度。 */

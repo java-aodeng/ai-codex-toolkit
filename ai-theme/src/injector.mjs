@@ -5,6 +5,7 @@ import { CdpSession, fetchRendererTargets, waitForRendererTargets } from "./cdp-
 import { LEGACY_MENU_ID, STYLE_ID } from "./constants.mjs";
 import { evaluateCodexWindowsViaMainInspector } from "./electron-main-bridge.mjs";
 import { buildSkinCss } from "./skin-css.mjs";
+import { startSkinLayout } from "./skin-layout.mjs";
 
 const MIME = {
   ".png": "image/png",
@@ -95,6 +96,7 @@ async function assetDataUrl(path, field) {
 function buildApplyExpression(css, themeId, themeMode) {
   return `(() => {
     document.getElementById(${JSON.stringify(LEGACY_MENU_ID)})?.remove();
+    window.__heigeCodexSkin?.cleanup?.();
     try { delete window.__heigeCodexSkin; } catch { window.__heigeCodexSkin = undefined; }
     let style = document.getElementById(${JSON.stringify(STYLE_ID)});
     if (!style) {
@@ -110,6 +112,7 @@ function buildApplyExpression(css, themeId, themeMode) {
     }
     root.dataset.theme = ${JSON.stringify(themeMode)};
     document.documentElement.dataset.heigeCodexSkin = ${JSON.stringify(themeId)};
+    ${themeMode === "dark" ? `window.__heigeCodexSkin = { cleanup: (${startSkinLayout.toString()})() };` : ""}
     return true;
   })()`;
 }
@@ -146,6 +149,7 @@ export async function removeTheme({ port }) {
       delete root.dataset.heigeCodexOriginalTheme;
     }
     delete document.documentElement.dataset.heigeCodexSkin;
+    window.__heigeCodexSkin?.cleanup?.();
     try { delete window.__heigeCodexSkin; } catch { window.__heigeCodexSkin = undefined; }
     return true;
   })()`;
