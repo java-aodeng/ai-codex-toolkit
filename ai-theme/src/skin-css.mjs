@@ -165,6 +165,7 @@ ${dark ? `
 :root[data-codex-window-type="electron"] {
   --heige-raised: #48443e;
   --heige-raised-soft: #3c3935;
+  --heige-reading-font-size: calc(var(--codex-chat-font-size) + 2px);
   --app-shell-panel-background: transparent !important;
   --color-text-secondary: #cec9c0 !important;
   --color-text-tertiary: #bdb7ad !important;
@@ -194,9 +195,24 @@ main[class*="_MainContentSurface_"], .main-surface, .browser-main-surface {
   border-color: rgba(201, 170, 114, 0.32) !important;
   box-shadow: none !important;
 }
-/* 用户消息与最终回复用轻薄深色底板改善阅读，同时透出壁纸。 */
+/* 连续阅读层仅柔化正文后方壁纸，渐隐边缘避免形成硬边面板。 */
+[data-thread-user-message-navigation-content] {
+  isolation: isolate;
+  --codex-chat-font-size: var(--heige-reading-font-size);
+}
+[data-thread-user-message-navigation-content]::before {
+  content: "";
+  position: absolute;
+  inset: 0 -32px;
+  z-index: -1;
+  pointer-events: none;
+  background: rgba(20, 22, 25, 0.28);
+  backdrop-filter: blur(3px);
+  mask-image: linear-gradient(90deg, transparent, black 48px, black calc(100% - 48px), transparent);
+}
+/* 连续阅读层上只保留淡消息底板，避免重复压暗。 */
 [data-user-message-bubble], [data-local-conversation-final-assistant] {
-  background: rgba(28, 30, 33, 0.35) !important;
+  background: rgba(28, 30, 33, 0.10) !important;
   border-color: transparent !important;
   box-shadow: none !important;
 }
