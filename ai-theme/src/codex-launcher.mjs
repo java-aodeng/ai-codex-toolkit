@@ -36,13 +36,10 @@ export async function findCodexExecutable({ env = process.env, exec = execFileAs
   return executable;
 }
 
+// 返回新启动的程序路径；已有 Codex 时返回 null，由调用方直接应用主题。
 export async function launchThemedCodex(port, { exec = execFileAsync } = {}) {
   const running = await findCodexMainProcessIds();
-  if (running.length > 0) {
-    throw new Error(
-      "Codex 正在运行，但最新版未开放主题调试端口。请先从托盘完全退出 Codex，再运行 start-themed.bat。",
-    );
-  }
+  if (running.length > 0) return null;
 
   const executable = await findCodexExecutable({ exec });
   const command = `Start-Process -FilePath '${executable.replaceAll("'", "''")}' -ArgumentList '--remote-debugging-port=${port}'`;

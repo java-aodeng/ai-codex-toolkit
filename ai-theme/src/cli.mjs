@@ -67,7 +67,7 @@ async function loadTheme(key) {
 async function selectedTheme() {
   try {
     const { theme } = JSON.parse(await readFile(selectionPath, "utf8"));
-    if (!Object.hasOwn(themeDirectories, theme)) throw new Error("已保存的主题不存在，请运行 switch-theme.bat 重新选择");
+    if (!Object.hasOwn(themeDirectories, theme)) throw new Error("已保存的主题不存在，请运行 start-themed.bat 重新选择");
     return theme;
   } catch (error) {
     if (error.code === "ENOENT") return "miku";
@@ -95,28 +95,24 @@ async function main() {
   const args = process.argv.slice(2);
   const command = args[0] ?? "apply";
   const port = parsePort(args);
-  if (command === "switch") {
+  if (command === "switch" || command === "start") {
     const key = await chooseTheme(args);
     if (key === null) return;
     const theme = await loadTheme(key);
+    // 已运行时直接切换；新启动时等待窗口就绪后再应用所选主题。
+    if (command === "start" && await launchThemedCodex(port)) {
+      console.log("Codex 已启动，正在等待主题接口……");
+      await waitForRendererTargets(port, { timeoutMs: 30_000 });
+    }
     const result = await applyTheme({ ...theme, port });
     await writeFile(selectionPath, JSON.stringify({ theme: key }) + "\n", "utf8");
-    console.log(`已切换到 ${theme.manifest.name}，应用到 ${result.applied} 个窗口；下次启动自动恢复。`);
+    console.log(`主题 ${theme.manifest.name} 已应用到 ${result.applied} 个 Codex 窗口。`);
     return;
   }
   if (command === "apply") {
     const theme = await loadTheme(await selectedTheme());
     const result = await applyTheme({ ...theme, port });
     console.log(`主题 ${theme.manifest.id} 已实时应用到 ${result.applied} 个 Codex 窗口，无需重启。`);
-    return;
-  }
-  if (command === "start") {
-    const theme = await loadTheme(await selectedTheme());
-    await launchThemedCodex(port);
-    console.log("Codex 已启动，正在等待主题接口……");
-    await waitForRendererTargets(port, { timeoutMs: 30_000 });
-    const result = await applyTheme({ ...theme, port });
-    console.log(`主题 ${theme.manifest.id} 已应用到 ${result.applied} 个 Codex 窗口。`);
     return;
   }
   if (command === "pause") {

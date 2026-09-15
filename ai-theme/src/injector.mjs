@@ -92,7 +92,7 @@ async function assetDataUrl(path, field) {
   return `data:${mime};base64,${bytes.toString("base64")}`;
 }
 
-function buildApplyExpression(css, themeId) {
+function buildApplyExpression(css, themeId, themeMode) {
   return `(() => {
     document.getElementById(${JSON.stringify(LEGACY_MENU_ID)})?.remove();
     try { delete window.__heigeCodexSkin; } catch { window.__heigeCodexSkin = undefined; }
@@ -103,6 +103,12 @@ function buildApplyExpression(css, themeId) {
       (document.head || document.documentElement).appendChild(style);
     }
     style.textContent = ${JSON.stringify(css)};
+    // 同步原生配色，避免暗色壁纸混用浅色文字和面板；重复应用时保留最初模式。
+    const root = document.documentElement;
+    if (!root.hasAttribute("data-heige-codex-original-theme")) {
+      root.dataset.heigeCodexOriginalTheme = root.getAttribute("data-theme") ?? "";
+    }
+    root.dataset.theme = ${JSON.stringify(themeMode)};
     document.documentElement.dataset.heigeCodexSkin = ${JSON.stringify(themeId)};
     return true;
   })()`;
@@ -117,7 +123,7 @@ export async function applyTheme({ manifest, heroPath, logoPath, polaroidPath, p
   });
   const result = await evaluateWithFallback({
     port,
-    expression: buildApplyExpression(css, manifest.id),
+    expression: buildApplyExpression(css, manifest.id, manifest.mode === "dark" ? "dark" : "light"),
     includeOverlay: false,
     operation: "主题应用",
   });
@@ -132,6 +138,13 @@ export async function removeTheme({ port }) {
   const expression = `(() => {
     document.getElementById(${JSON.stringify(STYLE_ID)})?.remove();
     document.getElementById(${JSON.stringify(LEGACY_MENU_ID)})?.remove();
+    const root = document.documentElement;
+    if (root.hasAttribute("data-heige-codex-original-theme")) {
+      const originalTheme = root.dataset.heigeCodexOriginalTheme;
+      if (originalTheme) root.dataset.theme = originalTheme;
+      else root.removeAttribute("data-theme");
+      delete root.dataset.heigeCodexOriginalTheme;
+    }
     delete document.documentElement.dataset.heigeCodexSkin;
     try { delete window.__heigeCodexSkin; } catch { window.__heigeCodexSkin = undefined; }
     return true;
