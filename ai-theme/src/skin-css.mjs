@@ -189,10 +189,15 @@ main[class*="_MainContentSurface_"], .main-surface, .browser-main-surface {
   box-shadow: none !important;
 }
 [data-codex-composer-root] [data-composer-surface-variant="default"],
-.composer-surface-chrome, [data-user-message-bubble],
-[data-local-conversation-final-assistant], [data-codex-approval-surface] {
+.composer-surface-chrome, [data-codex-approval-surface] {
   background: rgba(60, 57, 53, 0.90) !important;
   border-color: rgba(201, 170, 114, 0.32) !important;
+  box-shadow: none !important;
+}
+/* 用户消息与最终回复用轻薄深色底板改善阅读，同时透出壁纸。 */
+[data-user-message-bubble], [data-local-conversation-final-assistant] {
+  background: rgba(28, 30, 33, 0.35) !important;
+  border-color: transparent !important;
   box-shadow: none !important;
 }
 [data-codex-composer-root] [data-composer-surface-variant="default"],
@@ -244,6 +249,15 @@ pre, pre code, .monaco-editor, .monaco-editor-background {
 }
 pre, pre code { color: #dce0e6 !important; }
 :not(pre) > code { background-color: #4a4741 !important; color: #d5dfda !important; }
+/* 正文代码块只保留一层淡底，避免标题栏和代码区叠加成深色条。 */
+[data-markdown-copy="code-block"] {
+  background: rgba(28, 30, 33, 0.12) !important;
+  border-radius: 18px;
+}
+[data-markdown-copy="code-block"] > [data-markdown-copy="exclude"],
+[data-markdown-copy="code-block"] :is(pre, code) {
+  background: transparent !important;
+}
 textarea, [contenteditable="true"] { color: var(--heige-text) !important; caret-color: var(--heige-accent); }
 textarea::placeholder, input::placeholder { color: #c1baaf !important; }
 a { color: #d5bb8b !important; }
