@@ -2,6 +2,14 @@
 
 `ai-codex-toolkit` 集中维护 AI 编码规范、Codex 会话模板、场景指令、技术方案和桌面主题。
 
+## 使用
+
+| 功能 | 怎么用 |
+| --- | --- |
+| [编码规范](ai-rules/coding-standards.mdc) | 将下方全局指令复制到 Codex 个人指令中。 |
+| [会话模板](ai-instructions/codex-sessions.md) | 含生图、批量修复 Bug 等模板，复制所需代码块到新会话。 |
+| [Codex 主题](ai-theme/README.md) | 双击 [start-themed.bat](ai-theme/start-themed.bat)，选择初音、暗金、水墨·护眼或默认外观。 |
+
 ## 目录结构
 
 ```text
@@ -22,14 +30,6 @@ ai-codex-toolkit/
         ├── dark-gold/       # 暗金
         └── ink-landscape/   # 水墨·护眼
 ```
-
-## 使用
-
-| 功能 | 怎么用 |
-| --- | --- |
-| [编码规范](ai-rules/coding-standards.mdc) | 将下方全局指令复制到 Codex 个人指令中。 |
-| [会话模板](ai-instructions/codex-sessions.md) | 含生图、批量修复 Bug 等模板，复制所需代码块到新会话。 |
-| [Codex 主题](ai-theme/README.md) | 双击 [start-themed.bat](ai-theme/start-themed.bat)，选择初音、暗金、水墨·护眼或默认外观。 |
 
 ## Codex 全局指令
 
