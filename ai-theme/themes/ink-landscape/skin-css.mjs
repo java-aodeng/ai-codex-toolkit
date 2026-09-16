@@ -1,4 +1,4 @@
-// 水墨主题独立生成样式，不继承暗金的配色或滚动裁切。
+// 水墨主题独立生成样式，仅复用输入区的滚动裁切机制。
 export function buildInkLandscapeCss({ colors, heroDataUrl }) {
   const scope = ':root[data-codex-window-type="electron"][data-heige-codex-skin="ink-landscape"]';
   return `/* HEIGE_CODEX_SKIN:ink-landscape */
@@ -50,6 +50,10 @@ ${scope} .app-shell-left-panel {
   border-right: 1px solid var(--color-border) !important;
   backdrop-filter: none !important;
 }
+/* 标题与更多按钮外层透出壁纸，按钮自身保留原生悬停和焦点反馈。 */
+${scope} [data-app-shell-header-layout="thread-edge-scroll"] [data-app-shell-header-toolbar] > div {
+  background: transparent !important;
+}
 ${scope} main[class*="_MainContentSurface_"],
 ${scope} .main-surface,
 ${scope} .browser-main-surface,
@@ -68,7 +72,7 @@ ${scope} [data-app-shell-tab-strip-controller="right"] [class*="--app-shell-tab-
 ${scope} [data-app-shell-tab-strip-controller="right"] > [aria-hidden="true"]::after {
   background: transparent !important;
 }
-/* 输入区保留实底与原生遮挡，正文滚动到后面时不会透字。 */
+/* 输入区保留实底，正文通过下方裁切规则避免透到输入框后面。 */
 ${scope} [data-codex-composer-root] {
   --composer-layout-surface-background: transparent !important;
   --color-background-composer-action-bar: transparent !important;
@@ -81,8 +85,24 @@ ${scope} [data-codex-composer-root] [data-composer-rail-variant] {
   border-color: var(--color-border) !important;
   box-shadow: inset 0 1px rgba(189, 205, 179, 0.10) !important;
 }
+/* 原生遮罩在消息裁切容器内，移除它以免渐变被截成横条。 */
 ${scope} .thread-scroll-container .sticky.bottom-0 > .pointer-events-none.bg-gradient-to-t.from-surface.via-surface {
+  background: transparent !important;
+}
+/* 在独立输入区绘制固定高度的渐变，不随附件增高，也不受消息裁切影响。 */
+${scope} .thread-scroll-container > [data-thread-scroll-footer="true"]::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 160px !important;
+  z-index: 0;
+  pointer-events: none;
   background: linear-gradient(to top, var(--heige-surface), rgba(40, 52, 47, 0.88) 50%, transparent) !important;
+}
+/* 消息仍裁切到输入框顶边，输入框变高时也不会在两侧透字。 */
+${scope} .thread-scroll-container > [style*="--heige-thread-clip-bottom"] {
+  clip-path: inset(0 0 var(--heige-thread-clip-bottom, 0px) 0);
 }
 ${scope} [data-user-message-bubble],
 ${scope} [data-local-conversation-final-assistant] {

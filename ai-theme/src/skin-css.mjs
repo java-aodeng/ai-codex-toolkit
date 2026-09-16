@@ -224,9 +224,9 @@ main[class*="_MainContentSurface_"], .main-surface, .browser-main-surface {
 :root:has([data-codex-composer-root][data-composer-placement="home"]) [data-app-shell-main-content-top-fade] {
   background: transparent !important;
 }
-/* 消息框保留原有的淡底色。 */
+/* 加深消息底色，减少壁纸亮部对正文阅读的干扰。 */
 [data-user-message-bubble], [data-local-conversation-final-assistant] {
-  background: rgba(61, 57, 51, 0.30) !important;
+  background: rgba(61, 57, 51, 0.60) !important;
   backdrop-filter: none !important;
   border-color: transparent !important;
   box-shadow: none !important;
