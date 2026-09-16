@@ -28,10 +28,7 @@ ai-codex-toolkit/
 | 功能 | 怎么用 |
 | --- | --- |
 | [编码规范](ai-rules/coding-standards.mdc) | 将下方全局指令复制到 Codex 个人指令中。 |
-| [会话模板](ai-instructions/codex-sessions.md) | 选择一个模板，复制到新会话的首条消息。 |
-| [Sub2API 生图](ai-instructions/imagegen-sub2api.md) | 按文档配置后，在会话中描述要生成的图片。 |
-| [批量修复 Bug](ai-instructions/bugfix.md) | 填入项目路径和 Bug 清单，复制指令执行。 |
-| [Elasticsearch 技术方案](ai-solutions/Elasticsearch大数据量索引与蓝绿迁移通用方案.md) | 按需查阅索引设计与蓝绿迁移方案。 |
+| [会话模板](ai-instructions/codex-sessions.md) | 含生图、批量修复 Bug 等模板，复制所需代码块到新会话。 |
 | [Codex 主题](ai-theme/README.md) | 双击 [start-themed.bat](ai-theme/start-themed.bat)，选择初音、暗金、水墨·护眼或默认外观。 |
 
 ## Codex 全局指令
