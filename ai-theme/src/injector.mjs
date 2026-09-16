@@ -112,7 +112,7 @@ function buildApplyExpression(css, themeId, themeMode) {
     }
     root.dataset.theme = ${JSON.stringify(themeMode)};
     document.documentElement.dataset.heigeCodexSkin = ${JSON.stringify(themeId)};
-    ${themeMode === "dark" ? `window.__heigeCodexSkin = { cleanup: (${startSkinLayout.toString()})() };` : ""}
+    ${themeMode === "dark" && themeId !== "ink-landscape" ? `window.__heigeCodexSkin = { cleanup: (${startSkinLayout.toString()})() };` : ""}
     return true;
   })()`;
 }

@@ -1,3 +1,4 @@
+import { buildInkLandscapeCss } from "../themes/ink-landscape/skin-css.mjs";
 import { HEX_COLOR } from "./constants.mjs";
 import { mikuCompatibilityCss } from "../themes/miku/skin-css.mjs";
 
@@ -38,6 +39,7 @@ export function buildSkinCss({ theme, heroDataUrl, logoDataUrl = null, polaroidD
   };
   const id = String(theme.id ?? "custom").replace(/[^a-z0-9_-]/gi, "");
   const dark = theme.mode === "dark";
+  if (id === "ink-landscape") return buildInkLandscapeCss({ colors, heroDataUrl });
 
   return `/* HEIGE_CODEX_SKIN:${id} */
 :root[data-codex-window-type="electron"] {
