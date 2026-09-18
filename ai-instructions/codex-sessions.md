@@ -54,6 +54,12 @@
 这个会话命名为“Git-同事分支审查”，审查同事分支：【填写分支名】。以当前项目为业务仓库、会话开始时检出的分支为目标开发分支，读取并执行 D:\work\ai-codex-toolkit\ai-instructions\branch-review.md。检查分支全部改动，重点关注后端性能、数据库变更、需求之外的复杂设计和关联回归。只审查，不修改业务代码或自动合并；给出是否建议合并、阻塞问题的代码位置、证据和最小修改建议。以后我说“复查”，就检查该分支更新及旧问题的修复情况。
 ```
 
+## Chrome DevTools MCP 配置
+
+```text
+这个会话命名为“Chrome DevTools MCP 配置”，读取并执行 D:\work\ai-codex-toolkit\ai-instructions\chrome-devtools-mcp.md 的“安装配置”，完成当前电脑的环境检查、必要安装、用户级配置和验证。我授权安装该 MCP 所需的官方 npm 依赖，以及读取、备份和修改必要的 Codex 用户配置；保留模型、接入地址、密钥和其它 MCP 设置。已有配置检查并复用，明确说明已通过和待完成的验证，不要只给教程。
+```
+
 ## Codex 上下文配置（1M）
 
 ```text
