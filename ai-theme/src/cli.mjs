@@ -10,7 +10,7 @@ import { waitForRendererTargets } from "./cdp-client.mjs";
 import { applyTheme, removeTheme } from "./injector.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const themeDirectories = { miku: "themes/miku", "dark-gold": "themes/dark-gold", "ink-landscape": "themes/ink-landscape" };
+const themeDirectories = { miku: "themes/miku", "dark-gold": "themes/dark-gold", "ink-landscape": "themes/ink-landscape", facai: "themes/facai" };
 const selectionPath = join(root, ".selected-theme.json");
 const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp"]);
 
@@ -80,11 +80,11 @@ async function chooseTheme(args) {
   if (index >= 0) return args[index + 1];
   const input = createInterface({ input: process.stdin, output: process.stdout });
   try {
-    console.log("1. 初音\n2. 暗金\n3. Codex 默认（不使用主题）\n4. 水墨·护眼\n0. 取消");
-    const answer = (await input.question("请选择主题 [1/2/3/4/0]：")).trim();
+    console.log("1. 初音\n2. 暗金\n3. Codex 默认（不使用主题）\n4. 水墨·护眼\n5. 发财\n0. 取消");
+    const answer = (await input.question("请选择主题 [1/2/3/4/5/0]：")).trim();
     if (answer === "0") return null;
-    const key = { "1": "miku", "2": "dark-gold", "3": "none", "4": "ink-landscape" }[answer];
-    if (!key) throw new Error("请输入 1、2、3、4 或 0");
+    const key = { "1": "miku", "2": "dark-gold", "3": "none", "4": "ink-landscape", "5": "facai" }[answer];
+    if (!key) throw new Error("请输入 1、2、3、4、5 或 0");
     return key;
   } finally {
     input.close();

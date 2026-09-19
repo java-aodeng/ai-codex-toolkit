@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "facai",
+  "name": "发财",
+  "mode": "light",
+  "hero": "hero.webp",
+  "colors": {
+    "accent": "#AD422D",
+    "secondary": "#A07932",
+    "surface": "#F2E8D6",
+    "text": "#463529"
+  }
+}
