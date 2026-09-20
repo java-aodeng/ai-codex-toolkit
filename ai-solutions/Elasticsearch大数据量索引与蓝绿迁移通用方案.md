@@ -918,3 +918,46 @@ RPO / RTO：
 Elasticsearch 大数据迁移的可复用能力，最终体现在四件事上：规则确定、状态可恢复、切换可回滚、数据可证明。
 
 只要业务时间路由、稳定 ID、来源优先级和 Mapping 被统一版本化；全量、增量与重建共享同一套规则；所有物理代际变化都通过元数据和原子别名控制；验收使用分区级业务口径而不是表面总数，集群迁移就能从一次性工程变成可重复执行的标准能力。
+
+## 22. 可选扩展：通过传输压缩加速 MySQL → 服务 → Elasticsearch 同步
+
+适用于跨地域、带宽受限，以及 OCR、消息正文等大文本同步场景。先确认瓶颈在网络；若数据库查询、服务 CPU 或 ES 写入已是瓶颈，压缩不一定提速。
+
+### 22.1 MySQL → 服务：开启连接压缩
+
+使用 MySQL Connector/J 和 Spring Boot 默认 Hikari 数据源时，将以下内容合并到对应服务的 Nacos 数据源配置中：
+
+```yaml
+spring:
+  datasource:
+    hikari:
+      data-source-properties:
+        # 启用 MySQL 连接传输压缩，在新建连接时生效。
+        useCompression: true
+```
+
+- `useCompression` 是 Connector/J 的 zlib 协议压缩参数，不是 GZIP，也不是对数据库字段进行压缩。确认所用驱动、MySQL 服务端及中间代理支持该协议。[Connector/J 官方说明](https://dev.mysql.com/doc/connector-j/en/connector-j-connp-props-networking.html)
+- 自定义或多数据源项目按实际配置绑定位置设置，确认参数传入同步任务使用的连接池；保留原有 URL、凭据和连接池参数。
+- 发布配置后滚动重启对应服务，使连接池重建。仅更新 Nacos 不代表已有连接已启用压缩；应在实际同步连接上检查压缩会话状态，并观察链路流量。
+
+### 22.2 服务 → ES：压缩 Bulk 请求
+
+优先使用当前 ES HTTP 客户端支持的请求压缩功能。需要手动实现时，将完整 Bulk NDJSON 编码为 UTF-8，再进行 GZIP 压缩，以二进制请求体发送，并设置：
+
+```http
+Content-Type: application/x-ndjson
+Content-Encoding: gzip
+```
+
+- NDJSON 最后一行保留换行符，不做 JSON 美化；请求体必须确实经过 GZIP，不能只添加请求头。客户端自动压缩和手动压缩二选一，避免重复压缩；`Accept-Encoding: gzip` 表示接受压缩响应，不能代替请求体压缩。[Bulk 格式说明](https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-bulk) / [Java REST 客户端压缩说明](https://artifacts.elastic.co/javadoc/org/elasticsearch/client/elasticsearch-rest-client/8.4.3/org/elasticsearch/client/RestClientBuilder.html#setCompressionEnabled(boolean))
+- 确认 ES 版本、网关和代理可接收 GZIP 请求，并正确传递请求头；ES 解压后仍按原有 Bulk 逻辑处理，不修改文档内容、稳定 ID 或目标别名。
+- 沿用第 9.4 节的批次和并发限制，按**压缩前的 UTF-8 字节数**拆批，不因压缩后体积变小而盲目扩大批次。ES 的 `http.max_content_length` 也按压缩前大小限制。[请求大小限制](https://www.elastic.co/docs/reference/elasticsearch/configuration-reference/networking-settings#http-settings)
+- 保留逐项失败检查、重试和断点机制；HTTP 成功仍不代表所有 item 成功。手动压缩时释放流和缓冲区，重试须能重新生成同一批请求体。
+
+### 22.3 收益、验证与回退
+
+- **收益与代价**：减少传输字节数，同时增加两端压缩、解压的 CPU 消耗；客户端同时保留原始与压缩缓冲时会增加内存开销。不改变数据内容，也不减少 MySQL 或 ES 的磁盘存储量，实际提速以实测为准。
+- **小范围对比**：先记录未压缩基线，在相同数据样本、批次与并发下，分别验证 MySQL 链路、ES 链路，再组合启用。比较实际流量、每批耗时、同步延迟、吞吐、CPU、内存及失败率，同时核对字段样本和断点推进是否一致。
+- **快速回退**：为 ES 请求压缩增加独立开关。CPU、内存、失败率或同步延迟恶化时关闭；手动实现需同时停止 GZIP 并移除 `Content-Encoding: gzip`。MySQL 侧恢复原配置并重建连接池；已确认成功的断点按原规则继续使用。
+
+缩短调度间隔、关闭索引自动扩容属于独立策略，不纳入本扩展，也不与压缩同时调整，以免无法判断收益来源。
