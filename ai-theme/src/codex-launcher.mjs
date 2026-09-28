@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
-import { access } from "node:fs/promises";
 import { win32 } from "node:path";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 import { findCodexMainProcessIds } from "./electron-main-bridge.mjs";
@@ -17,37 +17,32 @@ function powershellPath(env = process.env) {
   );
 }
 
-export async function findCodexExecutable({ env = process.env, exec = execFileAsync } = {}) {
+// 通过 MSIX 激活应用并传递调试参数；已有窗口时不重启，避免中断正在进行的任务。
+export async function launchThemedCodex(port, {
+  exec = execFileAsync,
+  native = false,
+  findProcesses = findCodexMainProcessIds,
+} = {}) {
   if (process.platform !== "win32") throw new Error("主题启动器目前仅支持 Windows");
-
-  const command = [
-    "$package = Get-AppxPackage -Name 'OpenAI.Codex' -ErrorAction Stop",
-    "$exe = Join-Path $package.InstallLocation 'app\\ChatGPT.exe'",
-    "[Console]::Out.Write($exe)",
-  ].join("; ");
-  const { stdout } = await exec(
-    powershellPath(env),
-    ["-NoProfile", "-NonInteractive", "-Command", command],
-    { encoding: "utf8", timeout: 10_000, windowsHide: true },
-  );
-  const executable = String(stdout).trim();
-  if (!executable) throw new Error("没有找到已安装的 Codex Windows 应用");
-  await access(executable);
-  return executable;
-}
-
-// 返回新启动的程序路径；已有 Codex 时返回 null，由调用方应用或移除主题。
-export async function launchThemedCodex(port, { exec = execFileAsync, native = false } = {}) {
-  const running = await findCodexMainProcessIds();
+  if (!Number.isInteger(port) || port < 1024 || port > 65535) {
+    throw new Error("调试端口必须是 1024 到 65535 的整数");
+  }
+  const running = await findProcesses();
   if (running.length > 0) return null;
 
-  const executable = await findCodexExecutable({ exec });
-  const argumentsOption = native ? "" : ` -ArgumentList '--remote-debugging-port=${port}'`;
-  const command = `Start-Process -FilePath '${executable.replaceAll("'", "''")}'${argumentsOption}`;
-  await exec(
+  const args = [
+    "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+    "-File", fileURLToPath(new URL("./activate-codex.ps1", import.meta.url)),
+  ];
+  if (!native) args.push("-AppArguments", `--remote-debugging-port=${port} --remote-debugging-address=127.0.0.1`);
+  const { stdout } = await exec(
     powershellPath(),
-    ["-NoProfile", "-NonInteractive", "-Command", command],
-    { encoding: "utf8", timeout: 10_000, windowsHide: true },
+    args,
+    { encoding: "utf8", timeout: 15_000, windowsHide: true },
   );
-  return executable;
+  const processId = Number(String(stdout).trim());
+  if (!Number.isInteger(processId) || processId <= 0) {
+    throw new Error("Codex 应用包激活未返回有效进程，请从开始菜单确认应用能正常启动");
+  }
+  return processId;
 }
