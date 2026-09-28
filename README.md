@@ -25,10 +25,13 @@ ai-codex-toolkit/
 └── ai-theme/                 # Codex 主题
     ├── start-themed.bat      # 启动与切换入口
     ├── src/                 # 主题脚本
-    └── themes/
-        ├── miku/            # 初音
-        ├── dark-gold/       # 暗金
-        └── ink-landscape/   # 水墨·护眼
+    ├── themes/
+    │   ├── miku/            # 初音
+    │   ├── dark-gold/       # 暗金
+    │   ├── ink-landscape/   # 水墨·护眼
+    │   └── facai/           # 发财
+    └── mini/                # Codex 宠物
+        └── yuumi.codex-pet/ # Yuumi
 ```
 
 ## Codex 全局指令
@@ -55,7 +58,3 @@ D:\work\ai-codex-toolkit\ai-rules\coding-standards.mdc
 用户明确要求修复、实现、重构或修改时，直接完成范围内工作和必要验证，常规实现选择自行判断，不重复确认已授权操作。
 必要关联改动说明原因和影响；缺少影响正确性的关键信息、需要扩大需求或涉及未授权操作时，提出必要问题，并继续不受阻碍的已授权工作。
 ```
-
-## License
-
-[MIT](LICENSE)
