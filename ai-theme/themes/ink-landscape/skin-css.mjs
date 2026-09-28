@@ -50,6 +50,10 @@ ${scope} .app-shell-left-panel {
   border-right: 1px solid var(--color-border) !important;
   backdrop-filter: none !important;
 }
+/* 新版侧栏内层另有底色，清除后只保留外层原有的透明遮罩。 */
+${scope} .app-shell-left-panel .sidebar-navigation {
+  background: transparent !important;
+}
 /* 标题与更多按钮外层透出壁纸，按钮自身保留原生悬停和焦点反馈。 */
 ${scope} [data-app-shell-header-layout="thread-edge-scroll"] [data-app-shell-header-toolbar] > div {
   background: transparent !important;
@@ -59,7 +63,8 @@ ${scope} .main-surface,
 ${scope} .browser-main-surface,
 ${scope} .relative[class*="bg-[var(--app-shell-panel-background"],
 ${scope} [data-app-shell-focus-area="right-panel"] .bg-surface,
-${scope} [data-app-shell-main-content-top-fade] {
+${scope} [data-app-shell-main-content-top-fade],
+${scope} [data-app-shell-main-content-top-fade] > [class*="_MainContentTopFade_"] {
   background: transparent !important;
   box-shadow: none !important;
 }
