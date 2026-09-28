@@ -90,6 +90,13 @@ ${scope} [data-codex-composer-root] [data-composer-rail-variant] {
   border-color: var(--color-border) !important;
   box-shadow: inset 0 1px rgba(189, 205, 179, 0.10) !important;
 }
+${scope} [data-composer-placement="home"] [data-composer-surface-variant] {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+${scope} [data-composer-placement="home"] [data-composer-surface-variant] > [class*="_ComposerLayoutBody_"] {
+  background: #303c35 !important;
+}
 /* 原生遮罩在消息裁切容器内，移除它以免渐变被截成横条。 */
 ${scope} .thread-scroll-container .sticky.bottom-0 > .pointer-events-none.bg-gradient-to-t.from-surface.via-surface {
   background: transparent !important;
