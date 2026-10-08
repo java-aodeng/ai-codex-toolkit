@@ -35,9 +35,13 @@ async function evaluateTargets(targets, expression) {
     const session = new CdpSession(target.webSocketDebuggerUrl);
     try {
       await session.open();
-      ok.push({ id: target.id, value: await session.evaluate(expression) });
+      ok.push({ id: target.id, value: await session.evaluate(expression, { timeoutMs: 20_000 }) });
     } catch (error) {
-      failed.push({ id: target.id, error: error instanceof Error ? error.message : String(error) });
+      failed.push({
+        id: target.id,
+        error: error instanceof Error ? error.message : String(error),
+        evaluationFailed: error?.name === "CdpEvaluationError",
+      });
     } finally {
       session.close();
     }
@@ -49,14 +53,15 @@ function errorMessage(error) {
   return error instanceof Error ? error.message : String(error);
 }
 
-// Windows 商店版默认没有 renderer 调试端口，需要经 Electron 主进程桥接到现有窗口。
+// 调试连接不可用时尝试旧版 Electron 桥接；页面脚本异常保留真实原因。
 async function evaluateWithFallback({ port, expression, includeOverlay, operation }) {
   let primaryError;
+  let result;
   try {
     const targets = includeOverlay
       ? await fetchRendererTargets(port, { timeoutMs: 1_000 })
       : await waitForMainTargets(port, { timeoutMs: 1_000 });
-    const result = await evaluateTargets(targets, expression);
+    result = await evaluateTargets(targets, expression);
     if (result.ok.length === 0) {
       throw new Error(
         targets.length > 0
@@ -69,6 +74,9 @@ async function evaluateWithFallback({ port, expression, includeOverlay, operatio
     primaryError = error;
   }
 
+  if (result?.failed.some(({ evaluationFailed }) => evaluationFailed)) {
+    throw new Error(`${operation}失败：${errorMessage(primaryError)}`, { cause: primaryError });
+  }
   if (process.platform !== "win32") throw primaryError;
   try {
     return {
@@ -94,8 +102,20 @@ async function assetDataUrl(path, field) {
   return `data:${mime};base64,${bytes.toString("base64")}`;
 }
 
+// 此函数会序列化到页面执行；新版本可能先开放调试目标，再创建文档节点。
+async function waitForThemeDocument(timeoutMs = 15_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (!document.documentElement || !document.head || !document.body || document.readyState === "loading") {
+    if (Date.now() >= deadline) {
+      throw new Error("等待 Codex 页面文档就绪超时，请待窗口加载完成后重新应用主题");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+}
+
 function buildApplyExpression(css, themeId, themeMode) {
-  return `(() => {
+  return `(async () => {
+    await (${waitForThemeDocument.toString()})();
     document.getElementById(${JSON.stringify(LEGACY_MENU_ID)})?.remove();
     window.__heigeCodexSkin?.cleanup?.();
     try { delete window.__heigeCodexSkin; } catch { window.__heigeCodexSkin = undefined; }
@@ -139,7 +159,8 @@ export async function applyTheme({ manifest, heroPath, logoPath, polaroidPath, p
 }
 
 export async function removeTheme({ port }) {
-  const expression = `(() => {
+  const expression = `(async () => {
+    await (${waitForThemeDocument.toString()})();
     document.getElementById(${JSON.stringify(STYLE_ID)})?.remove();
     document.getElementById(${JSON.stringify(LEGACY_MENU_ID)})?.remove();
     const root = document.documentElement;
