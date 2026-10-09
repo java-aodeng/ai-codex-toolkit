@@ -1,37 +1,13 @@
 # ai-codex-toolkit
 
 `ai-codex-toolkit` 集中维护 AI 编码规范、Codex 会话模板、场景指令、技术方案和桌面主题。
-
-## 目录结构
-
-```text
-ai-codex-toolkit/
-├── ai-rules/                 # 编码规范
-│   └── coding-standards.mdc
-├── ai-instructions/          # 会话模板与场景指令
-│   ├── codex-sessions.md     # 会话模板
-│   ├── imagegen-sub2api.md   # 生图指令
-│   └── bugfix.md             # 批量修复 Bug
-├── ai-solutions/             # 技术方案
-│   └── Elasticsearch大数据量索引与蓝绿迁移通用方案.md
-└── ai-theme/                 # Codex 主题
-    ├── start-themed.bat      # 启动与切换入口
-    ├── src/                 # 主题脚本
-    ├── themes/
-    │   ├── miku/            # 初音
-    │   ├── dark-gold/       # 暗金
-    │   ├── ink-landscape/   # 水墨·护眼
-    │   └── facai/           # 发财
-    └── mini/                # Codex 宠物
-        └── yuumi.codex-pet/ # Yuumi
-```
 ## 使用
 
-| 功能 | 怎么用 |
-| --- | --- |
-| [编码规范](ai-rules/coding-standards.mdc) | 将下方全局指令复制到 Codex 个人指令中。 |
-| [会话模板](ai-instructions/codex-sessions.md) | 含生图、批量修复 Bug 等模板，复制所需代码块到新会话。 |
-| [Codex 主题](ai-theme/README.md)与[宠物](ai-theme/mini) | 双击 [start-themed.bat](ai-theme/start-themed.bat)，选择初音、暗金、水墨·护眼、发财或默认外观；宠物目录提供 Yuumi 配置与精灵图。 |
+| 功能 | 怎么用                                                            |
+| --- |----------------------------------------------------------------|
+| 编码规范 | 将下方全局指令复制到 Codex 个人指令中。                                        |
+| 会话模板| 含生图、批量修复 Bug 等模板，复制所需代码块到新会话。                                  |
+| Codex 主题与宠物 | 双击 start-themed.bat 选择初音、暗金、水墨·护眼、发财或默认外观；宠物目录提供 Yuumi 配置与精灵图。 |
 
 ## Codex 全局指令
 
@@ -60,4 +36,29 @@ D:\work\ai-codex-toolkit\ai-instructions\imagegen-sub2api.md
 中转地址与密钥从本机配置读取，请求前核对已授权目标；复用已有明确授权，不扩展到其它站点，不输出密钥。通用指令和快捷模板不写具体中转地址或密钥。
 
 仅在明确要求首次配置、更换中转站或排查环境时进入对应流程。日常生图不额外初始化、生成测试图或回写全局指令；不自动更换通道、降级模型或进行未经授权的计费重试。
+```
+
+
+---
+```text
+目录结构
+ai-codex-toolkit/
+├── ai-rules/                 # 编码规范
+│   └── coding-standards.mdc
+├── ai-instructions/          # 会话模板与场景指令
+│   ├── codex-sessions.md     # 会话模板
+│   ├── imagegen-sub2api.md   # 生图指令
+│   └── bugfix.md             # 批量修复 Bug
+├── ai-solutions/             # 技术方案
+│   └── Elasticsearch大数据量索引与蓝绿迁移通用方案.md
+└── ai-theme/                 # Codex 主题
+    ├── start-themed.bat      # 启动与切换入口
+    ├── src/                 # 主题脚本
+    ├── themes/
+    │   ├── miku/            # 初音
+    │   ├── dark-gold/       # 暗金
+    │   ├── ink-landscape/   # 水墨·护眼
+    │   └── facai/           # 发财
+    └── mini/                # Codex 宠物
+        └── yuumi.codex-pet/ # Yuumi
 ```
