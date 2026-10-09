@@ -1,4 +1,7 @@
-﻿param([string]$AppArguments = '')
+﻿param(
+    [string]$AppArguments = '',
+    [ValidatePattern('^\d+(,\d+)*$')][string]$RestartProcessIds
+)
 
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
@@ -53,6 +56,24 @@ namespace CodexTheme {
 '@
 
 $appId = $package.PackageFamilyName + '!' + $application.Id
+# 调用方仅在用户确认后传入进程号；关闭前再次核对路径，避免误关命令行或其它程序。
+if ($RestartProcessIds) {
+    $expectedExecutable = Join-Path $package.InstallLocation $application.Executable
+    $targets = @(
+        foreach ($value in $RestartProcessIds.Split(',')) {
+            $target = Get-Process -Id ([int]$value) -ErrorAction SilentlyContinue
+            if (-not $target) { continue }
+            if ($target.Path -ine $expectedExecutable) {
+                throw 'The Codex process changed. No restart was performed; please close Codex from the system tray.'
+            }
+            $target
+        }
+    )
+    foreach ($target in $targets) { $target.Kill() }
+    foreach ($target in $targets) {
+        if (-not $target.WaitForExit(10000)) { throw 'Codex did not exit in time. Please close it from the system tray.' }
+    }
+}
 $activatedProcessId = [CodexTheme.PackagedApp]::Activate($appId, $AppArguments)
 if ($activatedProcessId -eq 0) { throw 'Codex activation returned no process ID.' }
 [Console]::Out.Write($activatedProcessId)

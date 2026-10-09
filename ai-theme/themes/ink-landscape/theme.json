@@ -3,6 +3,7 @@
   "id": "ink-landscape",
   "name": "水墨·护眼",
   "mode": "dark",
+  "nativeAppearance": { "contrast": 35, "opaqueWindows": false },
   "hero": "hero.webp",
   "colors": {
     "accent": "#A8B89A",

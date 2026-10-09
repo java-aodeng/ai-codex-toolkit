@@ -91,6 +91,20 @@ async function chooseTheme(args) {
   }
 }
 
+async function confirmThemeRestart() {
+  if (!process.stdin.isTTY) {
+    throw new Error("Codex 已运行但未开启主题接口。请在交互终端运行 start-themed.bat，或从托盘完全退出 Codex 后重试。");
+  }
+  const input = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    console.log("Codex 已运行，但没有开启主题接口（更新后自动启动也会出现此情况）。");
+    console.log("重启会关闭所有 Codex 窗口并中断运行中的任务，请先保存未发送内容并等待任务结束。");
+    return (await input.question("输入 R 重启并应用所选外观，直接回车取消：")).trim().toLowerCase() === "r";
+  } finally {
+    input.close();
+  }
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const command = args[0] ?? "apply";
@@ -99,7 +113,13 @@ async function main() {
     const key = await chooseTheme(args);
     if (key === null) return;
     const theme = key === "none" ? null : await loadTheme(key);
-    const launched = command === "start" && await launchThemedCodex(port, { native: key === "none" });
+    const launched = command === "start"
+      ? await launchThemedCodex(port, { native: key === "none", confirmRestart: confirmThemeRestart })
+      : null;
+    if (launched === false) {
+      console.log("已取消，未重启 Codex，也未更改主题选择。");
+      return;
+    }
     if (key === "none") {
       // 原生启动无需调试端口；已有窗口则清除样式和布局监听。
       if (!launched) {

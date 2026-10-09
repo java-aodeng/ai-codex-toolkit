@@ -1,140 +1,50 @@
-// 水墨主题独立生成样式，仅复用输入区的滚动裁切机制。
+// 基础配色交给原生主题；这里只增强壁纸和少量容器，不改输入框、代码块或消息布局。
 export function buildInkLandscapeCss({ colors, heroDataUrl }) {
-  const scope = ':root[data-codex-window-type="electron"][data-heige-codex-skin="ink-landscape"]';
+  const scope = ':root[data-heige-codex-skin="ink-landscape"]';
   return `/* HEIGE_CODEX_SKIN:ink-landscape */
 ${scope} {
-  color-scheme: dark !important;
-  --heige-accent: ${colors.accent};
-  --heige-secondary: ${colors.secondary};
   --heige-surface: ${colors.surface};
-  --heige-text: ${colors.text};
-  --heige-raised: #344139;
+  --heige-wallpaper: linear-gradient(rgba(32, 44, 37, 0.12), rgba(32, 44, 37, 0.12)), url(${JSON.stringify(heroDataUrl)});
   --app-shell-panel-background: transparent !important;
-  --app-color-background-surface: var(--heige-surface) !important;
-  --app-color-background-surface-under: var(--heige-surface) !important;
-  --app-color-text-foreground: var(--heige-text) !important;
-  --app-color-text-foreground-secondary: #b5c1b6 !important;
-  --app-color-text-foreground-tertiary: #9eada1 !important;
-  --color-surface: var(--heige-surface) !important;
-  --color-surface-secondary: #303c35 !important;
-  --color-surface-tertiary: var(--heige-raised) !important;
-  --color-surface-elevated: var(--heige-raised) !important;
-  --color-surface-elevated-secondary: var(--heige-raised) !important;
-  --color-background-surface: var(--heige-surface) !important;
-  --color-background-surface-under: var(--heige-surface) !important;
-  --color-background-panel: var(--heige-surface) !important;
-  --color-background-application-menu: var(--heige-surface) !important;
-  --color-background-primary-soft: var(--heige-raised) !important;
-  --color-background-elevated-primary: var(--heige-raised) !important;
-  --color-background-elevated-primary-opaque: var(--heige-raised) !important;
-  --color-background-elevated-secondary: #303c35 !important;
-  --color-background-elevated-secondary-opaque: #303c35 !important;
-  --color-background-control: var(--heige-raised) !important;
-  --color-background-control-opaque: var(--heige-raised) !important;
-  --color-background-editor-opaque: #26312b !important;
-  --color-background-button-primary: var(--heige-accent) !important;
-  --color-text-primary: var(--heige-text) !important;
-  --color-text-foreground: var(--heige-text) !important;
-  --color-text-secondary: #b5c1b6 !important;
-  --color-text-tertiary: #9eada1 !important;
-  --color-text-inverted: #253027 !important;
-  --color-border: rgba(160, 180, 154, 0.24) !important;
+  --codeblock-background-color: color-mix(in srgb, var(--heige-surface) 88%, black) !important;
 }
 ${scope} #root {
-  color: var(--heige-text);
-  background: linear-gradient(rgba(32, 44, 37, 0.12), rgba(32, 44, 37, 0.12)),
-    url(${JSON.stringify(heroDataUrl)}) center / cover no-repeat !important;
+  background: var(--heige-wallpaper) center / cover no-repeat fixed !important;
 }
-${scope} .app-shell-left-panel {
-  background: rgba(37, 49, 42, 0.60) !important;
-  border-right: 1px solid var(--color-border) !important;
+/* 左右容器使用同一层淡色遮罩，避免新版内部背景叠加变深。 */
+${scope} [data-app-shell-left-panel-appearance],
+${scope} [data-new-tab-scroll-root] {
+  background: color-mix(in srgb, var(--heige-surface) 30%, transparent) !important;
   backdrop-filter: none !important;
 }
-/* 新版侧栏内层另有底色，清除后只保留外层原有的透明遮罩。 */
-${scope} .app-shell-left-panel .sidebar-navigation {
+${scope} [data-app-shell-left-panel-appearance] .sidebar-navigation {
   background: transparent !important;
 }
-/* 标题与更多按钮外层透出壁纸，按钮自身保留原生悬停和焦点反馈。 */
-${scope} [data-app-shell-header-layout="thread-edge-scroll"] [data-app-shell-header-toolbar] > div {
-  background: transparent !important;
-}
-${scope} main[class*="_MainContentSurface_"],
+${scope} [data-app-shell-main-surface],
 ${scope} .main-surface,
 ${scope} .browser-main-surface,
-${scope} .relative[class*="bg-[var(--app-shell-panel-background"],
-${scope} [data-app-shell-focus-area="right-panel"] .bg-surface,
-${scope} [data-app-shell-main-content-top-fade],
-${scope} [data-app-shell-main-content-top-fade] > [class*="_MainContentTopFade_"] {
+${scope} [data-app-shell-main-content-top-fade] > [aria-hidden="true"],
+${scope} [data-app-shell-header-toolbar] > div {
   background: transparent !important;
   box-shadow: none !important;
 }
-${scope} [data-app-action-sidebar-thread-active="true"],
-${scope} [data-app-shell-tab-strip-controller="right"] [data-tab-id][role="button"] {
-  background: rgba(150, 174, 140, 0.16) !important;
-  box-shadow: inset 2px 0 rgba(168, 184, 154, 0.6) !important;
-}
-${scope} [data-app-shell-tab-strip-controller="right"] [class*="--app-shell-tab-background"],
-${scope} [data-app-shell-tab-strip-controller="right"] > [aria-hidden="true"]::after {
+/* 沿用原生输入区高度，用同一张固定壁纸遮住后面的正文，不测量或裁切消息节点。 */
+${scope} [data-thread-scroll-footer] > .pointer-events-none,
+${scope} [data-app-action-timeline-scroll] .sticky.bottom-0 > .pointer-events-none {
   background: transparent !important;
 }
-/* 输入区保留实底，正文通过下方裁切规则避免透到输入框后面。 */
-${scope} [data-codex-composer-root] {
-  --composer-layout-surface-background: transparent !important;
-  --color-background-composer-action-bar: transparent !important;
+${scope} [data-thread-scroll-footer] [data-codex-composer-root] {
+  position: relative;
+  isolation: isolate;
 }
-${scope} [data-codex-composer-root] [data-composer-surface-variant],
-${scope} .composer-surface-chrome,
-${scope} [data-codex-composer-root] [data-composer-rail-variant] {
-  background: #303c35 !important;
-  color: var(--heige-text) !important;
-  border-color: var(--color-border) !important;
-  box-shadow: inset 0 1px rgba(189, 205, 179, 0.10) !important;
-}
-${scope} [data-composer-placement="home"] [data-composer-surface-variant] {
-  background: transparent !important;
-  box-shadow: none !important;
-}
-${scope} [data-composer-placement="home"] [data-composer-surface-variant] > [class*="_ComposerLayoutBody_"] {
-  background: #303c35 !important;
-}
-/* 原生遮罩在消息裁切容器内，移除它以免渐变被截成横条。 */
-${scope} .thread-scroll-container .sticky.bottom-0 > .pointer-events-none.bg-gradient-to-t.from-surface.via-surface {
-  background: transparent !important;
-}
-/* 在独立输入区绘制固定高度的渐变，不随附件增高，也不受消息裁切影响。 */
-${scope} .thread-scroll-container > [data-thread-scroll-footer="true"]::before {
+${scope} [data-thread-scroll-footer] [data-codex-composer-root]::before {
   content: "";
   position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  height: 160px !important;
-  z-index: 0;
+  inset: -32px -100vw;
+  z-index: -1;
   pointer-events: none;
-  background: linear-gradient(to top, var(--heige-surface), rgba(40, 52, 47, 0.88) 50%, transparent) !important;
+  background: var(--heige-wallpaper) center / cover no-repeat fixed;
+  mask-image: linear-gradient(to bottom, transparent, black 32px);
 }
-/* 消息仍裁切到输入框顶边，输入框变高时也不会在两侧透字。 */
-${scope} .thread-scroll-container > [style*="--heige-thread-clip-bottom"] {
-  clip-path: inset(0 0 var(--heige-thread-clip-bottom, 0px) 0);
-}
-${scope} [data-user-message-bubble],
-${scope} [data-local-conversation-final-assistant] {
-  background: rgba(37, 49, 42, 0.80) !important;
-  color: var(--heige-text) !important;
-  border-radius: 16px !important;
-  box-shadow: none !important;
-}
-${scope} [data-codex-approval-surface] {
-  background: var(--heige-raised) !important;
-  border-color: var(--color-border) !important;
-}
-${scope} textarea, ${scope} [contenteditable="true"] {
-  color: var(--heige-text) !important;
-  caret-color: var(--heige-accent);
-}
-${scope} textarea::placeholder, ${scope} input::placeholder { color: #a2b0a4 !important; }
-${scope} a { color: #b1c4a4 !important; }
-${scope} pre, ${scope} pre code { background-color: #26312b !important; color: var(--heige-text) !important; }
-${scope} :not(pre) > code { background: #354239 !important; color: #d3decd !important; }
-${scope} ::selection { background: #52654f; color: #e1e9da; }
 `;
 }

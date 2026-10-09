@@ -6,6 +6,8 @@ import { LEGACY_MENU_ID, STYLE_ID } from "./constants.mjs";
 import { evaluateCodexWindowsViaMainInspector } from "./electron-main-bridge.mjs";
 import { buildSkinCss } from "./skin-css.mjs";
 import { startSkinLayout } from "./skin-layout.mjs";
+import { syncNativeAppearance } from "./native-appearance.mjs";
+import { overlayCss } from "./overlay-css.mjs";
 
 const MIME = {
   ".png": "image/png",
@@ -14,6 +16,7 @@ const MIME = {
   ".webp": "image/webp",
 };
 const OVERLAY_MARKER = "avatar-overlay";
+const OVERLAY_STYLE_ID = `${STYLE_ID}-overlay`;
 
 function isMainTarget(target) {
   return typeof target.url === "string" && !target.url.includes(OVERLAY_MARKER);
@@ -35,7 +38,7 @@ async function evaluateTargets(targets, expression) {
     const session = new CdpSession(target.webSocketDebuggerUrl);
     try {
       await session.open();
-      ok.push({ id: target.id, value: await session.evaluate(expression, { timeoutMs: 20_000 }) });
+      ok.push({ id: target.id, value: await session.evaluate(expression, { timeoutMs: 40_000 }) });
     } catch (error) {
       failed.push({
         id: target.id,
@@ -113,9 +116,10 @@ async function waitForThemeDocument(timeoutMs = 15_000) {
   }
 }
 
-function buildApplyExpression(css, themeId, themeMode) {
+function buildApplyExpression(css, themeId, themeMode, nativePalette) {
   return `(async () => {
     await (${waitForThemeDocument.toString()})();
+    await (${syncNativeAppearance.toString()})(${JSON.stringify(nativePalette)});
     document.getElementById(${JSON.stringify(LEGACY_MENU_ID)})?.remove();
     window.__heigeCodexSkin?.cleanup?.();
     try { delete window.__heigeCodexSkin; } catch { window.__heigeCodexSkin = undefined; }
@@ -126,19 +130,58 @@ function buildApplyExpression(css, themeId, themeMode) {
       (document.head || document.documentElement).appendChild(style);
     }
     style.textContent = ${JSON.stringify(css)};
-    // 同步原生配色，避免暗色壁纸混用浅色文字和面板；重复应用时保留最初模式。
+    // 使用原生配色的主题由应用维护模式，其它主题保留原有临时切换方式。
     const root = document.documentElement;
-    if (!root.hasAttribute("data-heige-codex-original-theme")) {
-      root.dataset.heigeCodexOriginalTheme = root.getAttribute("data-theme") ?? "";
+    if (${Boolean(nativePalette)}) {
+      // 原生设置已写入；同时清除上一主题留在当前窗口的临时浅色模式。
+      root.dataset.theme = "dark";
+      delete root.dataset.heigeCodexOriginalTheme;
+    } else {
+      if (!root.hasAttribute("data-heige-codex-original-theme")) {
+        root.dataset.heigeCodexOriginalTheme = root.getAttribute("data-theme") ?? "";
+      }
+      root.dataset.theme = ${JSON.stringify(themeMode)};
     }
-    root.dataset.theme = ${JSON.stringify(themeMode)};
     document.documentElement.dataset.heigeCodexSkin = ${JSON.stringify(themeId)};
-    ${themeMode === "dark" ? `window.__heigeCodexSkin = { cleanup: (${startSkinLayout.toString()})() };` : ""}
+    ${themeMode === "dark" && !nativePalette ? `window.__heigeCodexSkin = { cleanup: (${startSkinLayout.toString()})() };` : ""}
     return true;
   })()`;
 }
 
+// 悬浮层只注入通知样式，不套用主窗口壁纸，也不改变宠物交互。
+async function applyOverlayAppearance(port, transport) {
+  const expression = `(async () => {
+    if (!location.search.includes(${JSON.stringify(OVERLAY_MARKER)})) return false;
+    await (${waitForThemeDocument.toString()})();
+    let style = document.getElementById(${JSON.stringify(OVERLAY_STYLE_ID)});
+    if (!style) {
+      style = document.createElement("style");
+      style.id = ${JSON.stringify(OVERLAY_STYLE_ID)};
+      document.head.appendChild(style);
+    }
+    style.textContent = ${JSON.stringify(overlayCss)};
+    document.documentElement.dataset.heigeCodexOverlay = "light";
+    return true;
+  })()`;
+  try {
+    const result = transport === "renderer-cdp"
+      ? await evaluateTargets((await fetchRendererTargets(port)).filter((target) => !isMainTarget(target)), expression)
+      : await evaluateCodexWindowsViaMainInspector(expression, { includeOverlay: true });
+    if (result.failed.length) throw new Error(result.failed.map(({ error }) => error).join("；"));
+  } catch (error) {
+    throw new Error(`主窗口主题已应用，但宠物通知外观更新失败：${errorMessage(error)}`, { cause: error });
+  }
+}
+
 export async function applyTheme({ manifest, heroPath, logoPath, polaroidPath, port }) {
+  // 原生对比度和窗口透明度来自主题清单；字体及语义色保留用户配置。
+  if (manifest.nativeAppearance && manifest.mode !== "dark") {
+    throw new Error("原生配色配置目前仅适用于深色主题");
+  }
+  const nativePalette = manifest.nativeAppearance ? {
+    accent: manifest.colors.accent, ink: manifest.colors.text, surface: manifest.colors.surface,
+    contrast: manifest.nativeAppearance.contrast, opaqueWindows: manifest.nativeAppearance.opaqueWindows,
+  } : null;
   const css = buildSkinCss({
     theme: manifest,
     heroDataUrl: await assetDataUrl(heroPath, "hero"),
@@ -147,10 +190,11 @@ export async function applyTheme({ manifest, heroPath, logoPath, polaroidPath, p
   });
   const result = await evaluateWithFallback({
     port,
-    expression: buildApplyExpression(css, manifest.id, manifest.mode === "dark" ? "dark" : "light"),
+    expression: buildApplyExpression(css, manifest.id, manifest.mode === "dark" ? "dark" : "light", nativePalette),
     includeOverlay: false,
     operation: "主题应用",
   });
+  await applyOverlayAppearance(port, result.transport);
   return {
     applied: result.ok.length,
     failed: result.failed.map(({ id }) => id),
@@ -161,7 +205,10 @@ export async function applyTheme({ manifest, heroPath, logoPath, polaroidPath, p
 export async function removeTheme({ port }) {
   const expression = `(async () => {
     await (${waitForThemeDocument.toString()})();
+    if (!location.search.includes(${JSON.stringify(OVERLAY_MARKER)})) await (${syncNativeAppearance.toString()})(null);
     document.getElementById(${JSON.stringify(STYLE_ID)})?.remove();
+    document.getElementById(${JSON.stringify(OVERLAY_STYLE_ID)})?.remove();
+    delete document.documentElement.dataset.heigeCodexOverlay;
     document.getElementById(${JSON.stringify(LEGACY_MENU_ID)})?.remove();
     const root = document.documentElement;
     if (root.hasAttribute("data-heige-codex-original-theme")) {

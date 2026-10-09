@@ -67,8 +67,7 @@ export async function findCodexMainProcessIds({
   const command = [
     "$all = @(Get-CimInstance Win32_Process -Filter \"Name='ChatGPT.exe' or Name='Codex.exe'\" -ErrorAction Stop)",
     "$all = @($all | Where-Object { -not $_.CommandLine -or $_.CommandLine -notmatch '(^|\\s)--type=' })",
-    "$preferred = @($all | Where-Object { $_.ExecutablePath -match '\\\\OpenAI\\.Codex_' -or $_.ExecutablePath -match '\\\\(ChatGPT|Codex)\\\\(ChatGPT|Codex)\\.exe$' })",
-    "if ($preferred.Count -gt 0) { $all = $preferred }",
+    "$all = @($all | Where-Object { $_.ExecutablePath -match '\\\\OpenAI\\.Codex_[^\\\\]+\\\\app\\\\(ChatGPT|Codex)\\.exe$' -or $_.ExecutablePath -match '\\\\(ChatGPT|Codex)\\\\(ChatGPT|Codex)\\.exe$' })",
     "$all | Sort-Object @{ Expression = { if ($_.ExecutablePath -match '\\\\OpenAI\\.Codex_') { 0 } else { 1 } } }, ProcessId | Select-Object -ExpandProperty ProcessId",
   ].join("; ");
   const { stdout } = await exec(
