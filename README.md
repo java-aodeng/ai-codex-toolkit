@@ -8,6 +8,7 @@
 | 编码规范| [ai-rules](ai-rules)        | 将下方全局指令复制到 Codex 个人指令中。                                        |
 | 会话模板| [ai-instructions](ai-instructions) | 含生图、批量修复 Bug 等模板[codex-sessions.md](ai-instructions/codex-sessions.md)，复制所需代码块到新会话。                                  |
 | 主题与宠物 | [ai-theme](ai-theme)        | 双击 start-themed.bat 选择初音、暗金、水墨·护眼、发财或默认外观；宠物目录提供 Yuumi 配置与精灵图。 |
+| 个人文档 | [my-docs](https://github.com/java-aodeng/my-docs) | 私有文档仓库，登录有访问权限的 GitHub 账号后查看。 |
 
 ## Codex 全局指令
 
