@@ -7,7 +7,8 @@ import { fileURLToPath } from "node:url";
 import { DEFAULT_CDP_PORT } from "./constants.mjs";
 import { launchThemedCodex } from "./codex-launcher.mjs";
 import { waitForRendererTargets } from "./cdp-client.mjs";
-import { applyTheme, removeTheme } from "./injector.mjs";
+import { applyTheme, inspectTheme, removeTheme } from "./injector.mjs";
+import { runThemeWatch, startThemeWatch, stopThemeWatch, watchLogPath } from "./theme-watch.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const themeDirectories = { miku: "themes/miku", "dark-gold": "themes/dark-gold", "ink-landscape": "themes/ink-landscape", facai: "themes/facai" };
@@ -114,6 +115,14 @@ async function main() {
   const args = process.argv.slice(2);
   const command = args[0] ?? "apply";
   const port = parsePort(args);
+  if (command === "watch") {
+    await runThemeWatch({
+      port, readTheme: selectedTheme, loadTheme,
+      inspect: (theme) => inspectTheme({ ...theme, port }),
+      apply: (theme, targetIds) => applyTheme({ ...theme, port, rendererOnly: true, targetIds }),
+    });
+    return;
+  }
   if (command === "switch" || command === "start") {
     const key = await chooseTheme(args);
     if (key === null) return;
@@ -127,6 +136,7 @@ async function main() {
       process.exitCode = 2;
       return;
     }
+    await stopThemeWatch(port);
     if (key === "none") {
       // 原生启动无需调试端口；已有窗口则清除样式和布局监听。
       if (!launched) {
@@ -148,11 +158,12 @@ async function main() {
     }
     const result = await applyTheme({ ...theme, port });
     await writeFile(selectionPath, JSON.stringify({ theme: key }) + "\n", "utf8");
-    console.log(`主题 ${theme.manifest.name} 已应用到 ${result.applied} 个 Codex 窗口。`);
+    await reportThemeApplied(theme.manifest.name, result, port);
     return;
   }
   if (command === "apply") {
     const key = await selectedTheme();
+    await stopThemeWatch(port);
     if (key === "none") {
       const result = await removeTheme({ port });
       if (result.failed.length) throw new Error("部分窗口未能恢复默认外观，请重试。");
@@ -161,15 +172,27 @@ async function main() {
     }
     const theme = await loadTheme(key);
     const result = await applyTheme({ ...theme, port });
-    console.log(`主题 ${theme.manifest.id} 已实时应用到 ${result.applied} 个 Codex 窗口，无需重启。`);
+    await reportThemeApplied(theme.manifest.name, result, port);
     return;
   }
   if (command === "pause") {
+    await stopThemeWatch(port);
     const result = await removeTheme({ port });
     console.log(`主题已从 ${result.removed} 个 Codex 窗口移除。`);
     return;
   }
   throw new Error(`未知命令：${command}，仅支持 apply、start、switch 或 pause`);
+}
+
+async function reportThemeApplied(name, result, port) {
+  console.log(`主题 ${name} 已加载到 ${result.applied} 个 Codex 窗口，壁纸资源检测通过。`);
+  if (result.pending) console.log("部分窗口暂不可见或存在额外图层，背景遮挡检查尚未确认。");
+  if (result.transport !== "renderer-cdp") {
+    console.log("当前通过旧版接口加载，无法启用自动恢复。请通过 start-themed.bat 重启后开启主题接口。");
+    return;
+  }
+  await startThemeWatch(port);
+  console.log(`已启用后台自动恢复，无需保留此窗口。状态记录：${watchLogPath(port)}`);
 }
 
 main().catch((error) => {

@@ -1,2 +1,4 @@
 # Local theme preference; do not share across machines.
 .selected-theme.json
+# Local automatic theme recovery status.
+.theme-watch-*.log

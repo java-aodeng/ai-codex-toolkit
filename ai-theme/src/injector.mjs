@@ -8,6 +8,7 @@ import { buildSkinCss } from "./skin-css.mjs";
 import { startSkinLayout } from "./skin-layout.mjs";
 import { syncNativeAppearance } from "./native-appearance.mjs";
 import { overlayCss } from "./overlay-css.mjs";
+import { inspectThemeAppearance } from "./theme-health.mjs";
 
 const MIME = {
   ".png": "image/png",
@@ -57,13 +58,18 @@ function errorMessage(error) {
 }
 
 // 调试连接不可用时尝试旧版 Electron 桥接；页面脚本异常保留真实原因。
-async function evaluateWithFallback({ port, expression, includeOverlay, operation }) {
+async function evaluateWithFallback({ port, expression, includeOverlay, operation, allowMainInspector = true, targetIds }) {
   let primaryError;
   let result;
   try {
-    const targets = includeOverlay
+    let targets = includeOverlay
       ? await fetchRendererTargets(port, { timeoutMs: 1_000 })
       : await waitForMainTargets(port, { timeoutMs: 1_000 });
+    if (targetIds) {
+      targets = targets.filter(({ id }) => targetIds.includes(id));
+      // 自动恢复可能只涉及新出现的宠物悬浮窗口。
+      if (!targets.length) return { ok: [], failed: [], transport: "renderer-cdp" };
+    }
     result = await evaluateTargets(targets, expression);
     if (result.ok.length === 0) {
       throw new Error(
@@ -80,7 +86,7 @@ async function evaluateWithFallback({ port, expression, includeOverlay, operatio
   if (result?.failed.some(({ evaluationFailed }) => evaluationFailed)) {
     throw new Error(`${operation}失败：${errorMessage(primaryError)}`, { cause: primaryError });
   }
-  if (process.platform !== "win32") throw primaryError;
+  if (!allowMainInspector || process.platform !== "win32") throw primaryError;
   try {
     return {
       ...(await evaluateCodexWindowsViaMainInspector(expression, { includeOverlay })),
@@ -116,7 +122,7 @@ async function waitForThemeDocument(timeoutMs = 15_000) {
   }
 }
 
-function buildApplyExpression(css, themeId, themeMode, nativePalette) {
+function buildApplyExpression(css, themeId, themeMode, nativePalette, heroDataUrl) {
   return `(async () => {
     await (${waitForThemeDocument.toString()})();
     await (${syncNativeAppearance.toString()})(${JSON.stringify(nativePalette)});
@@ -144,12 +150,14 @@ function buildApplyExpression(css, themeId, themeMode, nativePalette) {
     }
     document.documentElement.dataset.heigeCodexSkin = ${JSON.stringify(themeId)};
     ${themeMode === "dark" && !nativePalette ? `window.__heigeCodexSkin = { cleanup: (${startSkinLayout.toString()})() };` : ""}
-    return true;
+    const health = await (${inspectThemeAppearance.toString()})(${JSON.stringify(themeId)}, ${JSON.stringify(STYLE_ID)}, ${JSON.stringify(heroDataUrl)});
+    if (["missing", "invalid", "blocked"].includes(health.status)) throw new Error(health.reason);
+    return health;
   })()`;
 }
 
 // 悬浮层只注入通知样式，不套用主窗口壁纸，也不改变宠物交互。
-async function applyOverlayAppearance(port, transport) {
+async function applyOverlayAppearance(port, transport, targetIds) {
   const expression = `(async () => {
     if (!location.search.includes(${JSON.stringify(OVERLAY_MARKER)})) return false;
     await (${waitForThemeDocument.toString()})();
@@ -165,7 +173,7 @@ async function applyOverlayAppearance(port, transport) {
   })()`;
   try {
     const result = transport === "renderer-cdp"
-      ? await evaluateTargets((await fetchRendererTargets(port)).filter((target) => !isMainTarget(target)), expression)
+      ? await evaluateTargets((await fetchRendererTargets(port)).filter((target) => !isMainTarget(target) && (!targetIds || targetIds.includes(target.id))), expression)
       : await evaluateCodexWindowsViaMainInspector(expression, { includeOverlay: true });
     if (result.failed.length) throw new Error(result.failed.map(({ error }) => error).join("；"));
   } catch (error) {
@@ -173,7 +181,7 @@ async function applyOverlayAppearance(port, transport) {
   }
 }
 
-export async function applyTheme({ manifest, heroPath, logoPath, polaroidPath, port }) {
+export async function applyTheme({ manifest, heroPath, logoPath, polaroidPath, port, rendererOnly = false, targetIds }) {
   // 原生对比度和窗口透明度来自主题清单；字体及语义色保留用户配置。
   if (manifest.nativeAppearance && manifest.mode !== "dark") {
     throw new Error("原生配色配置目前仅适用于深色主题");
@@ -182,23 +190,48 @@ export async function applyTheme({ manifest, heroPath, logoPath, polaroidPath, p
     accent: manifest.colors.accent, ink: manifest.colors.text, surface: manifest.colors.surface,
     contrast: manifest.nativeAppearance.contrast, opaqueWindows: manifest.nativeAppearance.opaqueWindows,
   } : null;
+  const heroDataUrl = await assetDataUrl(heroPath, "hero");
   const css = buildSkinCss({
     theme: manifest,
-    heroDataUrl: await assetDataUrl(heroPath, "hero"),
+    heroDataUrl,
     logoDataUrl: await assetDataUrl(logoPath, "logo"),
     polaroidDataUrl: await assetDataUrl(polaroidPath, "polaroid"),
   });
   const result = await evaluateWithFallback({
     port,
-    expression: buildApplyExpression(css, manifest.id, manifest.mode === "dark" ? "dark" : "light", nativePalette),
+    expression: buildApplyExpression(css, manifest.id, manifest.mode === "dark" ? "dark" : "light", nativePalette, heroDataUrl),
     includeOverlay: false,
     operation: "主题应用",
+    allowMainInspector: !rendererOnly,
+    targetIds,
   });
-  await applyOverlayAppearance(port, result.transport);
+  if (result.failed.length) {
+    throw new Error(`部分窗口主题应用或检测失败：${result.failed.map(({ error }) => error).join("；")}`);
+  }
+  await applyOverlayAppearance(port, result.transport, targetIds);
   return {
     applied: result.ok.length,
     failed: result.failed.map(({ id }) => id),
     transport: result.transport,
+    pending: result.ok.filter(({ value }) => value?.status === "pending").length,
+  };
+}
+
+// 后台检查仅使用已有调试接口，不尝试开启主进程 inspector 或重启应用。
+export async function inspectTheme({ manifest, port }) {
+  const targets = await fetchRendererTargets(port, { timeoutMs: 1500 });
+  const mainTargets = targets.filter(isMainTarget);
+  if (!mainTargets.length) throw new Error("尚未发现 Codex 主窗口");
+  const expression = `(${inspectThemeAppearance.toString()})(${JSON.stringify(manifest.id)}, ${JSON.stringify(STYLE_ID)})`;
+  const result = await evaluateTargets(mainTargets, expression);
+  const overlays = await evaluateTargets(targets.filter((target) => !isMainTarget(target)),
+    `Boolean(document.getElementById(${JSON.stringify(OVERLAY_STYLE_ID)})?.textContent && document.documentElement.dataset.heigeCodexOverlay === "light")`);
+  return {
+    windows: [
+      ...result.ok.map(({ id, value }) => ({ id, ...value })),
+      ...overlays.ok.map(({ id, value }) => ({ id, status: value ? "ok" : "missing", reason: "宠物通知样式丢失" })),
+    ],
+    failed: [...result.failed, ...overlays.failed],
   };
 }
 
@@ -218,6 +251,7 @@ export async function removeTheme({ port }) {
       delete root.dataset.heigeCodexOriginalTheme;
     }
     delete document.documentElement.dataset.heigeCodexSkin;
+    delete window.__heigeCodexThemeHealth;
     window.__heigeCodexSkin?.cleanup?.();
     try { delete window.__heigeCodexSkin; } catch { window.__heigeCodexSkin = undefined; }
     return true;
