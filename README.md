@@ -1,6 +1,6 @@
 # ai-codex-toolkit
 
-`ai-codex-toolkit` 集中维护 AI 编码规范、Codex 会话模板、场景指令、技术方案和桌面主题。
+`ai-codex-toolkit` 集中维护 AI 编码规范、Codex 会话模板、场景指令和桌面主题。
 ## 使用
 
 | 功能     | 目录              | 怎么用                                                            |
@@ -8,7 +8,6 @@
 | 编码规范| [ai-rules](ai-rules)        | 将下方全局指令复制到 Codex 个人指令中。                                        |
 | 会话模板| [ai-instructions](ai-instructions) | 含生图、批量修复 Bug 等模板[codex-sessions.md](ai-instructions/codex-sessions.md)，复制所需代码块到新会话。                                  |
 | 主题与宠物 | [ai-theme](ai-theme)        | 双击 start-themed.bat 选择初音、暗金、水墨·护眼、发财或默认外观；宠物目录提供 Yuumi 配置与精灵图。 |
-| 技术方案 | [ai-solutions](ai-solutions)    | 实现过的方案，收纳。                                                     |
 
 ## Codex 全局指令
 
