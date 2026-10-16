@@ -8,7 +8,9 @@ ${scope} {
   --app-shell-panel-background: transparent !important;
   --codeblock-background-color: color-mix(in srgb, var(--heige-surface) 88%, black) !important;
 }
-${scope} #root {
+/* 新版页面框架有独立底色；在框架层也绘制同一张壁纸，避免根节点壁纸被遮住。 */
+${scope} #root,
+${scope} [data-app-shell-frame] {
   background: var(--heige-wallpaper) center / cover no-repeat fixed !important;
 }
 /* 左右容器使用同一层淡色遮罩，避免新版内部背景叠加变深。 */

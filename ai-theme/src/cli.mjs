@@ -99,7 +99,12 @@ async function confirmThemeRestart() {
   try {
     console.log("Codex 已运行，但没有开启主题接口（更新后自动启动也会出现此情况）。");
     console.log("重启会关闭所有 Codex 窗口并中断运行中的任务，请先保存未发送内容并等待任务结束。");
-    return (await input.question("输入 R 重启并应用所选外观，直接回车取消：")).trim().toLowerCase() === "r";
+    while (true) {
+      const answer = (await input.question("输入 R 重启并应用，输入 0 取消（回车不会执行）：")).trim().toLowerCase();
+      if (answer === "r") return true;
+      if (answer === "0") return false;
+      console.log("主题尚未应用。准备好重启后输入 R；暂不重启请输入 0。");
+    }
   } finally {
     input.close();
   }
@@ -117,7 +122,9 @@ async function main() {
       ? await launchThemedCodex(port, { native: key === "none", confirmRestart: confirmThemeRestart })
       : null;
     if (launched === false) {
-      console.log("已取消，未重启 Codex，也未更改主题选择。");
+      console.log("已取消：所选外观尚未应用，未重启 Codex，也未更改主题选择。");
+      // 让批处理保留窗口，避免取消后静默关闭而被误认为应用成功。
+      process.exitCode = 2;
       return;
     }
     if (key === "none") {
@@ -132,8 +139,12 @@ async function main() {
     }
     // 已运行时直接切换；新启动时等待窗口就绪后再应用所选主题。
     if (launched) {
-      console.log("Codex 已启动，正在等待主题接口……");
-      await waitForRendererTargets(port, { timeoutMs: 30_000 });
+      console.log("已发送 Codex 启动请求，正在等待主题接口（尚未应用主题）……");
+      try {
+        await waitForRendererTargets(port, { timeoutMs: 30_000 });
+      } catch (error) {
+        throw new Error(`启动后主题接口 ${port} 未就绪，壁纸尚未应用。请保留本窗口的错误信息以排查启动参数或版本兼容问题。\n${error.message}`, { cause: error });
+      }
     }
     const result = await applyTheme({ ...theme, port });
     await writeFile(selectionPath, JSON.stringify({ theme: key }) + "\n", "utf8");
