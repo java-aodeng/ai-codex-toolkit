@@ -125,7 +125,13 @@ async function waitForThemeDocument(timeoutMs = 15_000) {
 function buildApplyExpression(css, themeId, themeMode, nativePalette, heroDataUrl) {
   return `(async () => {
     await (${waitForThemeDocument.toString()})();
-    await (${syncNativeAppearance.toString()})(${JSON.stringify(nativePalette)});
+    let appearanceWarning;
+    try {
+      await (${syncNativeAppearance.toString()})(${JSON.stringify(nativePalette)});
+    } catch (error) {
+      appearanceWarning = "原生配色同步未完成：" + error.message + "。继续加载壁纸，保留外观备份以便重试。";
+    }
+    window.__heigeCodexAppearanceWarning = appearanceWarning;
     document.getElementById(${JSON.stringify(LEGACY_MENU_ID)})?.remove();
     window.__heigeCodexSkin?.cleanup?.();
     try { delete window.__heigeCodexSkin; } catch { window.__heigeCodexSkin = undefined; }
@@ -140,8 +146,10 @@ function buildApplyExpression(css, themeId, themeMode, nativePalette, heroDataUr
     const root = document.documentElement;
     if (${Boolean(nativePalette)}) {
       // 原生设置已写入；同时清除上一主题留在当前窗口的临时浅色模式。
-      root.dataset.theme = "dark";
-      delete root.dataset.heigeCodexOriginalTheme;
+      if (!appearanceWarning) {
+        root.dataset.theme = "dark";
+        delete root.dataset.heigeCodexOriginalTheme;
+      }
     } else {
       if (!root.hasAttribute("data-heige-codex-original-theme")) {
         root.dataset.heigeCodexOriginalTheme = root.getAttribute("data-theme") ?? "";
@@ -152,7 +160,7 @@ function buildApplyExpression(css, themeId, themeMode, nativePalette, heroDataUr
     ${themeMode === "dark" && !nativePalette ? `window.__heigeCodexSkin = { cleanup: (${startSkinLayout.toString()})() };` : ""}
     const health = await (${inspectThemeAppearance.toString()})(${JSON.stringify(themeId)}, ${JSON.stringify(STYLE_ID)}, ${JSON.stringify(heroDataUrl)});
     if (["missing", "invalid", "blocked"].includes(health.status)) throw new Error(health.reason);
-    return health;
+    return { ...health, appearanceWarning };
   })()`;
 }
 
@@ -214,6 +222,7 @@ export async function applyTheme({ manifest, heroPath, logoPath, polaroidPath, p
     failed: result.failed.map(({ id }) => id),
     transport: result.transport,
     pending: result.ok.filter(({ value }) => value?.status === "pending").length,
+    warnings: [...new Set(result.ok.map(({ value }) => value?.appearanceWarning).filter(Boolean))],
   };
 }
 
@@ -222,7 +231,10 @@ export async function inspectTheme({ manifest, port }) {
   const targets = await fetchRendererTargets(port, { timeoutMs: 1500 });
   const mainTargets = targets.filter(isMainTarget);
   if (!mainTargets.length) throw new Error("尚未发现 Codex 主窗口");
-  const expression = `(${inspectThemeAppearance.toString()})(${JSON.stringify(manifest.id)}, ${JSON.stringify(STYLE_ID)})`;
+  const expression = `(async () => ({
+    ...await (${inspectThemeAppearance.toString()})(${JSON.stringify(manifest.id)}, ${JSON.stringify(STYLE_ID)}),
+    appearanceWarning: window.__heigeCodexAppearanceWarning,
+  }))()`;
   const result = await evaluateTargets(mainTargets, expression);
   const overlays = await evaluateTargets(targets.filter((target) => !isMainTarget(target)),
     `Boolean(document.getElementById(${JSON.stringify(OVERLAY_STYLE_ID)})?.textContent && document.documentElement.dataset.heigeCodexOverlay === "light")`);
@@ -238,7 +250,11 @@ export async function inspectTheme({ manifest, port }) {
 export async function removeTheme({ port }) {
   const expression = `(async () => {
     await (${waitForThemeDocument.toString()})();
-    if (!location.search.includes(${JSON.stringify(OVERLAY_MARKER)})) await (${syncNativeAppearance.toString()})(null);
+    let appearanceWarning;
+    if (!location.search.includes(${JSON.stringify(OVERLAY_MARKER)})) {
+      try { await (${syncNativeAppearance.toString()})(null); }
+      catch (error) { appearanceWarning = "原生外观尚未恢复：" + error.message + "。备份已保留，可在接口恢复后重新选择默认外观。"; }
+    }
     document.getElementById(${JSON.stringify(STYLE_ID)})?.remove();
     document.getElementById(${JSON.stringify(OVERLAY_STYLE_ID)})?.remove();
     delete document.documentElement.dataset.heigeCodexOverlay;
@@ -252,9 +268,10 @@ export async function removeTheme({ port }) {
     }
     delete document.documentElement.dataset.heigeCodexSkin;
     delete window.__heigeCodexThemeHealth;
+    delete window.__heigeCodexAppearanceWarning;
     window.__heigeCodexSkin?.cleanup?.();
     try { delete window.__heigeCodexSkin; } catch { window.__heigeCodexSkin = undefined; }
-    return true;
+    return { appearanceWarning };
   })()`;
   const result = await evaluateWithFallback({
     port,
@@ -266,5 +283,6 @@ export async function removeTheme({ port }) {
     removed: result.ok.length,
     failed: result.failed.map(({ id }) => id),
     transport: result.transport,
+    warnings: [...new Set(result.ok.map(({ value }) => value?.appearanceWarning).filter(Boolean))],
   };
 }

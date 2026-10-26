@@ -8,8 +8,53 @@ export async function syncNativeAppearance(palette) {
   let backup = raw ? JSON.parse(raw) : null;
   if (!palette && !backup) return;
   if (backup && backup.version !== 1) throw new Error("原生主题备份版本不匹配，未修改外观设置");
-  if (typeof window.electronBridge?.sendMessageFromView !== "function") {
-    throw new Error("当前应用未提供原生外观设置接口，未应用自定义配色");
+
+  async function bounded(operation, label) {
+    let timer;
+    try {
+      return await Promise.race([
+        Promise.resolve().then(operation),
+        new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`${label}超时`)), 5000); }),
+      ]);
+    } finally { clearTimeout(timer); }
+  }
+
+  // 新版设置服务从应用自己的 RPC 入口导出；从当前入口脚本发现地址，不绑定构建哈希。
+  async function findSettingsService() {
+    const isRpc = (value) => {
+      try { const url = new URL(value); return url.protocol === "app:" && url.host === "-" && /^\/assets\/rpc-[\w-]+\.js$/.test(url.pathname); }
+      catch { return false; }
+    };
+    const urls = performance.getEntriesByType("resource").map(({ name }) => name);
+    urls.push(...[...document.querySelectorAll('link[rel="modulepreload"][href]')].map(({ href }) => href));
+    let rpcUrl = urls.find(isRpc);
+    if (!rpcUrl) {
+      const entry = [...document.scripts].map(({ src }) => src).find((value) => {
+        try { const url = new URL(value); return url.protocol === "app:" && url.host === "-" && /^\/assets\/index-[\w-]+\.js$/.test(url.pathname); }
+        catch { return false; }
+      });
+      if (!entry) return null;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 3000);
+      try {
+        const response = await fetch(entry, { signal: controller.signal });
+        if (!response.ok) throw new Error("无法读取应用设置入口");
+        const source = await response.text();
+        const filename = source.match(/["'`]((?:\.\/)?rpc-[\w-]+\.js)["'`]/)?.[1];
+        if (!filename) return null;
+        rpcUrl = new URL(filename, entry).href;
+      } finally { clearTimeout(timer); }
+    }
+    const module = await bounded(() => import(rpcUrl), "加载原生设置服务");
+    const service = module.appServices?.settings;
+    return service && typeof service.read === "function" && typeof service.write === "function" ? service : null;
+  }
+
+  let service;
+  let discoveryError;
+  try { service = await findSettingsService(); } catch (error) { discoveryError = error; }
+  if (!service && typeof window.electronBridge?.sendMessageFromView !== "function") {
+    throw new Error(discoveryError?.message ?? "当前应用未提供原生外观设置接口");
   }
 
   function normalize(value) {
@@ -53,13 +98,36 @@ export async function syncNativeAppearance(palette) {
     });
   }
 
+  async function readSetting(key) {
+    if (!service) {
+      const snapshot = await request("get-setting", { key });
+      return { snapshot, effective: snapshot.value };
+    }
+    const result = await bounded(() => service.read(key), "读取原生外观设置");
+    // 未设置且没有默认值时，RPC 会省略两个 undefined 字段，返回空对象。
+    if (!result || typeof result !== "object" || Array.isArray(result) ||
+        Object.keys(result).some((key) => key !== "configured" && key !== "effective")) {
+      throw new Error("原生设置返回格式不兼容");
+    }
+    // 保留旧备份结构；未配置的值用空对象表示，恢复时清除覆盖而不是写死默认值。
+    return { snapshot: result.configured === undefined ? {} : { value: result.configured }, effective: result.effective };
+  }
+  async function writeSetting(key, snapshot) {
+    if (service) await bounded(() => service.write(key, snapshot.value), "写入原生外观设置");
+    else await request("set-setting", { key, ...snapshot });
+  }
   const current = {};
-  for (const key of keys) current[key] = await request("get-setting", { key });
+  const effective = {};
+  for (const key of keys) {
+    const result = await readSetting(key);
+    current[key] = result.snapshot;
+    effective[key] = result.effective;
+  }
   if (!palette) {
     // 用户自行调整过的设置不覆盖；未变的设置恢复到启用水墨之前的值。
     for (const key of [...keys].reverse()) {
       if (backup.applied[key] && same(current[key], backup.applied[key])) {
-        await request("set-setting", { key, ...backup.original[key] });
+        await writeSetting(key, backup.original[key]);
       }
     }
     localStorage.removeItem(storageKey);
@@ -75,7 +143,7 @@ export async function syncNativeAppearance(palette) {
   for (const key of keys) {
     if (!backup.applied[key] || !same(current[key], backup.applied[key])) backup.original[key] = current[key];
   }
-  const existing = current[paletteKey].value ?? {};
+  const existing = effective[paletteKey] ?? {};
   const desired = {
     [paletteKey]: { value: {
       ...existing,
@@ -89,6 +157,6 @@ export async function syncNativeAppearance(palette) {
   for (const key of keys) {
     backup.applied[key] = desired[key];
     localStorage.setItem(storageKey, JSON.stringify(backup));
-    if (!same(current[key], desired[key])) await request("set-setting", { key, ...desired[key] });
+    if (!same(current[key], desired[key])) await writeSetting(key, desired[key]);
   }
 }

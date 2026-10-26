@@ -138,13 +138,15 @@ async function main() {
     }
     await stopThemeWatch(port);
     if (key === "none") {
+      let warnings = [];
       // 原生启动无需调试端口；已有窗口则清除样式和布局监听。
       if (!launched) {
         const result = await removeTheme({ port });
         if (result.failed.length) throw new Error("部分窗口未能恢复默认外观，请重试；未保存主题选择。");
+        warnings = result.warnings;
       }
       await writeFile(selectionPath, JSON.stringify({ theme: key }) + "\n", "utf8");
-      console.log("已恢复 Codex 默认外观，不使用自定义主题。");
+      reportThemeRemoved(warnings);
       return;
     }
     // 已运行时直接切换；新启动时等待窗口就绪后再应用所选主题。
@@ -167,7 +169,7 @@ async function main() {
     if (key === "none") {
       const result = await removeTheme({ port });
       if (result.failed.length) throw new Error("部分窗口未能恢复默认外观，请重试。");
-      console.log("已恢复 Codex 默认外观，不使用自定义主题。");
+      reportThemeRemoved(result.warnings);
       return;
     }
     const theme = await loadTheme(key);
@@ -179,6 +181,7 @@ async function main() {
     await stopThemeWatch(port);
     const result = await removeTheme({ port });
     console.log(`主题已从 ${result.removed} 个 Codex 窗口移除。`);
+    for (const warning of result.warnings) console.warn(warning);
     return;
   }
   throw new Error(`未知命令：${command}，仅支持 apply、start、switch 或 pause`);
@@ -186,6 +189,7 @@ async function main() {
 
 async function reportThemeApplied(name, result, port) {
   console.log(`主题 ${name} 已加载到 ${result.applied} 个 Codex 窗口，壁纸资源检测通过。`);
+  for (const warning of result.warnings) console.warn(warning);
   if (result.pending) console.log("部分窗口暂不可见或存在额外图层，背景遮挡检查尚未确认。");
   if (result.transport !== "renderer-cdp") {
     console.log("当前通过旧版接口加载，无法启用自动恢复。请通过 start-themed.bat 重启后开启主题接口。");
@@ -193,6 +197,11 @@ async function reportThemeApplied(name, result, port) {
   }
   await startThemeWatch(port);
   console.log(`已启用后台自动恢复，无需保留此窗口。状态记录：${watchLogPath(port)}`);
+}
+
+function reportThemeRemoved(warnings) {
+  console.log(warnings.length ? "自定义主题已移除，原生外观恢复仍需处理。" : "已恢复 Codex 默认外观，不使用自定义主题。");
+  for (const warning of warnings) console.warn(warning);
 }
 
 main().catch((error) => {

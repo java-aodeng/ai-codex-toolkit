@@ -108,9 +108,11 @@ export async function monitorTheme({ readTheme, loadTheme, inspect, apply, repor
         }
       } else if (!problem) {
         const pending = health.windows.find(({ status }) => status === "pending");
-        await report(pending
+        const warnings = [...new Set(health.windows.map(({ appearanceWarning }) => appearanceWarning).filter(Boolean))];
+        const appearanceNote = warnings.length ? `；${warnings.join("；")}` : "";
+        await report((pending
           ? `主题已加载，效果检测待确认：${pending.reason}`
-          : "壁纸资源与主背景层检测通过，自动恢复运行中。");
+          : "壁纸资源与主背景层检测通过，自动恢复运行中。") + appearanceNote);
       }
     }
     try { await sleep(intervalMs); } catch (error) { if (!signal.aborted) throw error; }
