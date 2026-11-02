@@ -53,8 +53,8 @@ export async function startThemeWatch(port) {
   });
 }
 
-// 每轮串行检查；恢复最多尝试三次，断线最多等待两分钟，不自动重启 Codex。
-export async function monitorTheme({ readTheme, loadTheme, inspect, apply, report, signal,
+// 每轮串行检查；样式和语言分别限三次真正的恢复尝试，初始化等待不计次数。
+export async function monitorTheme({ readTheme, loadTheme, inspect, apply, recoverLocale, report, signal,
   sleep = (ms) => delay(ms, undefined, { signal }), now = Date.now, intervalMs = 3000, disconnectMs = 120_000 }) {
   let disconnectedAt;
   let lastKey;
@@ -80,39 +80,61 @@ export async function monitorTheme({ readTheme, loadTheme, inspect, apply, repor
       const observed = [...health.windows, ...health.failed.map(({ id }) => ({ id, status: "missing" }))];
       for (const id of windows.keys()) if (!observed.some((window) => window.id === id)) windows.delete(id);
       const recover = [];
+      const localeRecover = [];
       let problem = false;
       for (const window of observed) {
-        const state = windows.get(window.id) ?? { attempts: 0, fault: "" };
+        const state = windows.get(window.id) ?? { attempts: 0, localeAttempts: 0, fault: "" };
         windows.set(window.id, state);
         if (window.status === "blocked" || window.status === "invalid") {
           problem = true;
           // 连续两次出现同一问题才记录，避免把页面切换瞬态当成兼容错误。
           if (state.fault === window.reason) await report(`需要处理：${window.reason}。已停止对此窗口重复注入。`);
           state.fault = window.reason;
-        } else if (window.status === "missing" || window.localePending) {
+        } else if (window.status === "missing") {
           problem = true;
           state.fault = "";
           if (state.attempts < 3) { state.attempts++; recover.push(window.id); }
-          else await report("部分窗口样式或语言恢复已尝试三次，暂停重试。请重新运行 start-themed.bat 查看错误。");
+          else await report("部分窗口样式恢复已尝试三次，暂停重试。请重新运行 start-themed.bat 查看错误。");
         } else {
           state.attempts = 0;
           state.fault = "";
+        }
+        if (window.localeStatus === "waiting" || window.localeStatus === "loading") {
+          problem = true;
+          if (window.localeStatus === "waiting") state.localeAttempts = 0;
+          await report(window.localeWarning);
+        } else if (["missing", "failed"].includes(window.localeStatus) && !recover.includes(window.id)) {
+          problem = true;
+          if (state.localeAttempts < 3) { state.localeAttempts++; localeRecover.push(window.id); }
+          else await report(`语言恢复已尝试三次：${window.localeWarning}。请重新应用主题查看详情。`);
+        } else if (window.localeStatus === "ready") {
+          state.localeAttempts = 0;
         }
       }
       if (recover.length) {
         try {
           await apply(theme, recover);
-          await report("已处理样式或语言待恢复的窗口，将继续检测效果。");
+          await report("已处理丢失样式的窗口，将继续检测效果。");
         } catch (error) {
           await report(`自动恢复失败（每个窗口最多尝试三次）：${error.message}`);
         }
-      } else if (!problem) {
+      }
+      if (localeRecover.length) {
+        try {
+          await recoverLocale(localeRecover);
+          await report("已请求语言恢复，等待实际翻译加载完成。");
+        } catch (error) {
+          await report(`语言恢复失败（每个窗口最多尝试三次）：${error.message}`);
+        }
+      }
+      if (!recover.length && !localeRecover.length && !problem) {
         const pending = health.windows.find(({ status }) => status === "pending");
         const warnings = [...new Set(health.windows.flatMap(({ appearanceWarning, localeWarning }) => [appearanceWarning, localeWarning]).filter(Boolean))];
         const appearanceNote = warnings.length ? `；${warnings.join("；")}` : "";
+        const localeNote = health.windows.some(({ localeStatus }) => localeStatus === "ready") ? " 所选界面语言检查通过。" : "";
         await report((pending
           ? `主题已加载，效果检测待确认：${pending.reason}`
-          : "壁纸资源与主背景层检测通过，自动恢复运行中。") + appearanceNote);
+          : "壁纸资源与主背景层检测通过，自动恢复运行中。") + appearanceNote + localeNote);
       }
     }
     try { await sleep(intervalMs); } catch (error) { if (!signal.aborted) throw error; }

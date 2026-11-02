@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { DEFAULT_CDP_PORT } from "./constants.mjs";
 import { launchThemedCodex } from "./codex-launcher.mjs";
 import { waitForRendererTargets } from "./cdp-client.mjs";
-import { applyTheme, inspectTheme, removeTheme } from "./injector.mjs";
+import { applyTheme, inspectTheme, recoverLocale, removeTheme } from "./injector.mjs";
 import { runThemeWatch, startThemeWatch, stopThemeWatch, watchLogPath } from "./theme-watch.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -119,6 +119,7 @@ async function main() {
     await runThemeWatch({
       port, readTheme: selectedTheme, loadTheme,
       inspect: (theme) => inspectTheme({ ...theme, port }),
+      recoverLocale: (targetIds) => recoverLocale({ port, targetIds }),
       apply: (theme, targetIds) => applyTheme({ ...theme, port, rendererOnly: true, targetIds }),
     });
     return;

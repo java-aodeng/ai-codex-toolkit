@@ -135,10 +135,13 @@ function buildApplyExpression(css, themeId, themeMode, nativePalette, heroDataUr
     window.__heigeCodexAppearanceWarning = appearanceWarning;
     let localeWarning;
     let localePending = false;
-    try { await (${syncLocaleRecovery.toString()})(); }
+    try {
+      const locale = await (${syncLocaleRecovery.toString()})();
+      localeWarning = locale.reason;
+      localePending = locale.status !== "ready";
+    }
     catch (error) {
       localeWarning = "界面语言恢复未完成：" + error.message;
-      localePending = error.code === "LOCALE_NOT_READY";
     }
     window.__heigeCodexLocaleWarning = localeWarning;
     window.__heigeCodexLocalePending = localePending;
@@ -241,12 +244,17 @@ export async function inspectTheme({ manifest, port }) {
   const targets = await fetchRendererTargets(port, { timeoutMs: 1500 });
   const mainTargets = targets.filter(isMainTarget);
   if (!mainTargets.length) throw new Error("尚未发现 Codex 主窗口");
-  const expression = `(async () => ({
-    ...await (${inspectThemeAppearance.toString()})(${JSON.stringify(manifest.id)}, ${JSON.stringify(STYLE_ID)}),
-    appearanceWarning: window.__heigeCodexAppearanceWarning,
-    localeWarning: window.__heigeCodexLocaleWarning,
-    localePending: window.__heigeCodexLocalePending,
-  }))()`;
+  const expression = `(async () => {
+    const health = await (${inspectThemeAppearance.toString()})(${JSON.stringify(manifest.id)}, ${JSON.stringify(STYLE_ID)});
+    let locale;
+    try { locale = await (${syncLocaleRecovery.toString()})({ checkOnly: true }); }
+    catch (error) { locale = { status: "failed", reason: error.message }; }
+    return { ...health, appearanceWarning: window.__heigeCodexAppearanceWarning,
+      localeStatus: locale.status, localePending: locale.status !== "ready",
+      localeWarning: locale.status === "ready" ? undefined :
+        locale.status === "missing" ? window.__heigeCodexLocaleWarning ?? locale.reason : locale.reason,
+    };
+  })()`;
   const result = await evaluateTargets(mainTargets, expression);
   const overlays = await evaluateTargets(targets.filter((target) => !isMainTarget(target)),
     `Boolean(document.getElementById(${JSON.stringify(OVERLAY_STYLE_ID)})?.textContent && document.documentElement.dataset.heigeCodexOverlay === "light")`);
@@ -257,6 +265,26 @@ export async function inspectTheme({ manifest, port }) {
     ],
     failed: [...result.failed, ...overlays.failed],
   };
+}
+
+// 只恢复语言，不重新注入壁纸、改配色或重启应用。
+export async function recoverLocale({ port, targetIds }) {
+  const targets = (await fetchRendererTargets(port)).filter((target) =>
+    isMainTarget(target) && (!targetIds || targetIds.includes(target.id)));
+  const expression = `(async () => {
+    try {
+      const locale = await (${syncLocaleRecovery.toString()})({ timeoutMs: 0 });
+      window.__heigeCodexLocaleWarning = locale.reason;
+      window.__heigeCodexLocalePending = locale.status !== "ready";
+      return locale;
+    } catch (error) {
+      window.__heigeCodexLocaleWarning = error.message;
+      throw error;
+    }
+  })()`;
+  const result = await evaluateTargets(targets, expression);
+  if (result.failed.length) throw new Error(result.failed.map(({ error }) => error).join("；"));
+  return result.ok.map(({ id, value }) => ({ id, ...value }));
 }
 
 export async function removeTheme({ port }) {
