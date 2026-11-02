@@ -7,6 +7,7 @@ import { evaluateCodexWindowsViaMainInspector } from "./electron-main-bridge.mjs
 import { buildSkinCss } from "./skin-css.mjs";
 import { startSkinLayout } from "./skin-layout.mjs";
 import { syncNativeAppearance } from "./native-appearance.mjs";
+import { syncLocaleRecovery } from "./locale-recovery.mjs";
 import { overlayCss } from "./overlay-css.mjs";
 import { inspectThemeAppearance } from "./theme-health.mjs";
 
@@ -132,6 +133,15 @@ function buildApplyExpression(css, themeId, themeMode, nativePalette, heroDataUr
       appearanceWarning = "原生配色同步未完成：" + error.message + "。继续加载壁纸，保留外观备份以便重试。";
     }
     window.__heigeCodexAppearanceWarning = appearanceWarning;
+    let localeWarning;
+    let localePending = false;
+    try { await (${syncLocaleRecovery.toString()})(); }
+    catch (error) {
+      localeWarning = "界面语言恢复未完成：" + error.message;
+      localePending = error.code === "LOCALE_NOT_READY";
+    }
+    window.__heigeCodexLocaleWarning = localeWarning;
+    window.__heigeCodexLocalePending = localePending;
     document.getElementById(${JSON.stringify(LEGACY_MENU_ID)})?.remove();
     window.__heigeCodexSkin?.cleanup?.();
     try { delete window.__heigeCodexSkin; } catch { window.__heigeCodexSkin = undefined; }
@@ -160,7 +170,7 @@ function buildApplyExpression(css, themeId, themeMode, nativePalette, heroDataUr
     ${themeMode === "dark" && !nativePalette ? `window.__heigeCodexSkin = { cleanup: (${startSkinLayout.toString()})() };` : ""}
     const health = await (${inspectThemeAppearance.toString()})(${JSON.stringify(themeId)}, ${JSON.stringify(STYLE_ID)}, ${JSON.stringify(heroDataUrl)});
     if (["missing", "invalid", "blocked"].includes(health.status)) throw new Error(health.reason);
-    return { ...health, appearanceWarning };
+    return { ...health, appearanceWarning, localeWarning, localePending };
   })()`;
 }
 
@@ -222,7 +232,7 @@ export async function applyTheme({ manifest, heroPath, logoPath, polaroidPath, p
     failed: result.failed.map(({ id }) => id),
     transport: result.transport,
     pending: result.ok.filter(({ value }) => value?.status === "pending").length,
-    warnings: [...new Set(result.ok.map(({ value }) => value?.appearanceWarning).filter(Boolean))],
+    warnings: [...new Set(result.ok.flatMap(({ value }) => [value?.appearanceWarning, value?.localeWarning]).filter(Boolean))],
   };
 }
 
@@ -234,6 +244,8 @@ export async function inspectTheme({ manifest, port }) {
   const expression = `(async () => ({
     ...await (${inspectThemeAppearance.toString()})(${JSON.stringify(manifest.id)}, ${JSON.stringify(STYLE_ID)}),
     appearanceWarning: window.__heigeCodexAppearanceWarning,
+    localeWarning: window.__heigeCodexLocaleWarning,
+    localePending: window.__heigeCodexLocalePending,
   }))()`;
   const result = await evaluateTargets(mainTargets, expression);
   const overlays = await evaluateTargets(targets.filter((target) => !isMainTarget(target)),
@@ -251,7 +263,10 @@ export async function removeTheme({ port }) {
   const expression = `(async () => {
     await (${waitForThemeDocument.toString()})();
     let appearanceWarning;
+    let localeWarning;
     if (!location.search.includes(${JSON.stringify(OVERLAY_MARKER)})) {
+      try { await (${syncLocaleRecovery.toString()})({ enabled: false }); }
+      catch (error) { localeWarning = "语言恢复补丁尚未移除：" + error.message; }
       try { await (${syncNativeAppearance.toString()})(null); }
       catch (error) { appearanceWarning = "原生外观尚未恢复：" + error.message + "。备份已保留，可在接口恢复后重新选择默认外观。"; }
     }
@@ -269,9 +284,11 @@ export async function removeTheme({ port }) {
     delete document.documentElement.dataset.heigeCodexSkin;
     delete window.__heigeCodexThemeHealth;
     delete window.__heigeCodexAppearanceWarning;
+    delete window.__heigeCodexLocaleWarning;
+    delete window.__heigeCodexLocalePending;
     window.__heigeCodexSkin?.cleanup?.();
     try { delete window.__heigeCodexSkin; } catch { window.__heigeCodexSkin = undefined; }
-    return { appearanceWarning };
+    return { appearanceWarning, localeWarning };
   })()`;
   const result = await evaluateWithFallback({
     port,
@@ -283,6 +300,6 @@ export async function removeTheme({ port }) {
     removed: result.ok.length,
     failed: result.failed.map(({ id }) => id),
     transport: result.transport,
-    warnings: [...new Set(result.ok.map(({ value }) => value?.appearanceWarning).filter(Boolean))],
+    warnings: [...new Set(result.ok.flatMap(({ value }) => [value?.appearanceWarning, value?.localeWarning]).filter(Boolean))],
   };
 }

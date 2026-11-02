@@ -89,11 +89,11 @@ export async function monitorTheme({ readTheme, loadTheme, inspect, apply, repor
           // 连续两次出现同一问题才记录，避免把页面切换瞬态当成兼容错误。
           if (state.fault === window.reason) await report(`需要处理：${window.reason}。已停止对此窗口重复注入。`);
           state.fault = window.reason;
-        } else if (window.status === "missing") {
+        } else if (window.status === "missing" || window.localePending) {
           problem = true;
           state.fault = "";
           if (state.attempts < 3) { state.attempts++; recover.push(window.id); }
-          else await report("部分窗口自动恢复已尝试三次，暂停重试。请重新运行 start-themed.bat 查看错误。");
+          else await report("部分窗口样式或语言恢复已尝试三次，暂停重试。请重新运行 start-themed.bat 查看错误。");
         } else {
           state.attempts = 0;
           state.fault = "";
@@ -102,13 +102,13 @@ export async function monitorTheme({ readTheme, loadTheme, inspect, apply, repor
       if (recover.length) {
         try {
           await apply(theme, recover);
-          await report("已处理丢失样式的窗口，将继续检测背景层。");
+          await report("已处理样式或语言待恢复的窗口，将继续检测效果。");
         } catch (error) {
           await report(`自动恢复失败（每个窗口最多尝试三次）：${error.message}`);
         }
       } else if (!problem) {
         const pending = health.windows.find(({ status }) => status === "pending");
-        const warnings = [...new Set(health.windows.map(({ appearanceWarning }) => appearanceWarning).filter(Boolean))];
+        const warnings = [...new Set(health.windows.flatMap(({ appearanceWarning, localeWarning }) => [appearanceWarning, localeWarning]).filter(Boolean))];
         const appearanceNote = warnings.length ? `；${warnings.join("；")}` : "";
         await report((pending
           ? `主题已加载，效果检测待确认：${pending.reason}`
