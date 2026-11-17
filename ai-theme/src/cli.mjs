@@ -201,8 +201,9 @@ async function reportThemeApplied(name, result, port) {
 }
 
 function reportThemeRemoved(warnings) {
-  console.log(warnings.length ? "自定义主题已移除，原生外观恢复仍需处理。" : "已恢复 Codex 默认外观，不使用自定义主题。");
-  for (const warning of warnings) console.warn(warning);
+  // 恢复不完整时返回失败，让批处理保留窗口展示原因，不静默关闭。
+  if (warnings.length) throw new Error(`自定义主题已移除，但默认外观尚未完整恢复：\n${warnings.join("\n")}`);
+  console.log("已恢复 Codex 默认外观，不使用自定义主题。");
 }
 
 main().catch((error) => {

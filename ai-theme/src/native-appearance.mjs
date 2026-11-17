@@ -19,7 +19,28 @@ export async function syncNativeAppearance(palette) {
     } finally { clearTimeout(timer); }
   }
 
-  // 新版设置服务从应用自己的 RPC 入口导出；从当前入口脚本发现地址，不绑定构建哈希。
+  // Rspack 构建的入口导出模块运行时；只查看已加载的服务，不执行未加载模块。
+  async function findBundledSettingsService() {
+    const scripts = [...document.scripts].map(({ src }) => src).filter((value) => {
+      try { const url = new URL(value); return url.protocol === "app:" && url.host === "-" && /^\/assets\/\d+\.[\w-]+\.js$/.test(url.pathname); }
+      catch { return false; }
+    });
+    for (const url of scripts.reverse()) {
+      const module = await bounded(() => import(url), "读取应用模块入口");
+      const cache = module.__webpack_require__?.c;
+      if (!cache) continue;
+      for (const loaded of Object.values(cache)) {
+        const exports = loaded?.exports;
+        if (!exports || !Object.hasOwn(exports, "appServices")) continue;
+        const service = exports.appServices?.settings;
+        if (typeof service?.read === "function" && typeof service?.write === "function") return service;
+      }
+      throw new Error("应用模块已加载，但原生设置服务尚未就绪，请稍后重试");
+    }
+    return null;
+  }
+
+  // 保留旧版 RPC 入口兼容；新版使用当前文档中的模块地址，不绑定构建哈希。
   async function findSettingsService() {
     const isRpc = (value) => {
       try { const url = new URL(value); return url.protocol === "app:" && url.host === "-" && /^\/assets\/rpc-[\w-]+\.js$/.test(url.pathname); }
@@ -33,7 +54,7 @@ export async function syncNativeAppearance(palette) {
         try { const url = new URL(value); return url.protocol === "app:" && url.host === "-" && /^\/assets\/index-[\w-]+\.js$/.test(url.pathname); }
         catch { return false; }
       });
-      if (!entry) return null;
+      if (!entry) return findBundledSettingsService();
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 3000);
       try {
@@ -53,6 +74,7 @@ export async function syncNativeAppearance(palette) {
   let service;
   let discoveryError;
   try { service = await findSettingsService(); } catch (error) { discoveryError = error; }
+  if (!service && discoveryError) throw discoveryError;
   if (!service && typeof window.electronBridge?.sendMessageFromView !== "function") {
     throw new Error(discoveryError?.message ?? "当前应用未提供原生外观设置接口");
   }
