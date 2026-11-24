@@ -53,7 +53,7 @@ export async function startThemeWatch(port) {
   });
 }
 
-// 每轮串行检查；样式和语言分别限三次真正的恢复尝试，初始化等待不计次数。
+// 每轮串行检查；壁纸与配色共用主题恢复次数，语言单独计数。
 export async function monitorTheme({ readTheme, loadTheme, inspect, apply, recoverLocale, report, signal,
   sleep = (ms) => delay(ms, undefined, { signal }), now = Date.now, intervalMs = 3000, disconnectMs = 120_000 }) {
   let disconnectedAt;
@@ -83,20 +83,29 @@ export async function monitorTheme({ readTheme, loadTheme, inspect, apply, recov
       const localeRecover = [];
       let problem = false;
       for (const window of observed) {
-        const state = windows.get(window.id) ?? { attempts: 0, localeAttempts: 0, fault: "" };
+        const state = windows.get(window.id) ?? { attempts: 0, nextAppearanceRetryAt: 0, localeAttempts: 0, fault: "" };
         windows.set(window.id, state);
         if (window.status === "blocked" || window.status === "invalid") {
           problem = true;
           // 连续两次出现同一问题才记录，避免把页面切换瞬态当成兼容错误。
           if (state.fault === window.reason) await report(`需要处理：${window.reason}。已停止对此窗口重复注入。`);
           state.fault = window.reason;
-        } else if (window.status === "missing") {
+        } else if (window.status === "missing" || window.appearanceWarning) {
           problem = true;
           state.fault = "";
-          if (state.attempts < 3) { state.attempts++; recover.push(window.id); }
-          else await report("部分窗口样式恢复已尝试三次，暂停重试。请重新运行 start-themed.bat 查看错误。");
+          if (state.attempts >= 3) {
+            await report(`主题恢复已尝试三次，暂停重试：${window.appearanceWarning ?? window.reason ?? "窗口样式缺失"}。请重新运行 start-themed.bat。`);
+          } else if (window.status === "missing" || now() >= state.nextAppearanceRetryAt) {
+            state.attempts++;
+            // 配色服务可能晚于壁纸就绪，延长后续尝试的间隔，避免启动期间用完次数。
+            state.nextAppearanceRetryAt = now() + state.attempts * 10_000;
+            recover.push(window.id);
+          } else {
+            await report(window.appearanceWarning);
+          }
         } else {
           state.attempts = 0;
+          state.nextAppearanceRetryAt = 0;
           state.fault = "";
         }
         if (window.localeStatus === "waiting" || window.localeStatus === "loading") {
@@ -114,7 +123,7 @@ export async function monitorTheme({ readTheme, loadTheme, inspect, apply, recov
       if (recover.length) {
         try {
           await apply(theme, recover);
-          await report("已处理丢失样式的窗口，将继续检测效果。");
+          await report("已重新应用主题，将继续检查壁纸与配色。");
         } catch (error) {
           await report(`自动恢复失败（每个窗口最多尝试三次）：${error.message}`);
         }
@@ -129,12 +138,12 @@ export async function monitorTheme({ readTheme, loadTheme, inspect, apply, recov
       }
       if (!recover.length && !localeRecover.length && !problem) {
         const pending = health.windows.find(({ status }) => status === "pending");
-        const warnings = [...new Set(health.windows.flatMap(({ appearanceWarning, localeWarning }) => [appearanceWarning, localeWarning]).filter(Boolean))];
-        const appearanceNote = warnings.length ? `；${warnings.join("；")}` : "";
+        const warnings = [...new Set(health.windows.map(({ localeWarning }) => localeWarning).filter(Boolean))];
+        const warningNote = warnings.length ? `；${warnings.join("；")}` : "";
         const localeNote = health.windows.some(({ localeStatus }) => localeStatus === "ready") ? " 所选界面语言检查通过。" : "";
         await report((pending
           ? `主题已加载，效果检测待确认：${pending.reason}`
-          : "壁纸资源与主背景层检测通过，自动恢复运行中。") + appearanceNote + localeNote);
+          : "壁纸资源与主背景层检测通过，自动恢复运行中。") + warningNote + localeNote);
       }
     }
     try { await sleep(intervalMs); } catch (error) { if (!signal.aborted) throw error; }
