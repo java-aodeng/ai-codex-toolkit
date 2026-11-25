@@ -22,6 +22,8 @@ ${scope} [data-new-tab-scroll-root] {
 ${scope} [data-app-shell-left-panel-appearance] .sidebar-navigation {
   background: transparent !important;
 }
+/* 新版会话区有独立底板，清除底色以露出框架上的壁纸。 */
+${scope} [data-app-shell-surface-backing],
 ${scope} [data-app-shell-main-surface],
 ${scope} .main-surface,
 ${scope} .browser-main-surface,
@@ -29,6 +31,10 @@ ${scope} [data-app-shell-main-content-top-fade] > [aria-hidden="true"],
 ${scope} [data-app-shell-header-toolbar] > div {
   background: transparent !important;
   box-shadow: none !important;
+}
+/* 新版通过变量给会话顶部绘制渐变，纯色渐变在壁纸上形成一道暗边。 */
+${scope} [data-app-shell-main-surface="default"] {
+  --app-shell-content-fade: none;
 }
 /* 沿用原生输入区高度，用同一张固定壁纸遮住后面的正文，不测量或裁切消息节点。 */
 ${scope} [data-thread-scroll-footer] > .pointer-events-none,

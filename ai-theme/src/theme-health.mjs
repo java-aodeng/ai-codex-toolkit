@@ -46,7 +46,9 @@ export async function inspectThemeAppearance(themeId, styleId, heroDataUrl) {
   for (let element = main; element; element = element.parentElement) {
     const style = getComputedStyle(element);
     if (style.backgroundImage.includes(hero)) return result("ok", "壁纸资源与主背景层检测通过");
-    if (style.backgroundImage !== "none" || style.maskImage !== "none" || style.clipPath !== "none" ||
+    // border-box 只限制盒子边界，不影响对不透明底色的判断。
+    if (style.backgroundImage !== "none" || style.maskImage !== "none" ||
+        (style.clipPath !== "none" && style.clipPath !== "border-box") ||
         style.filter !== "none" || style.mixBlendMode !== "normal") {
       return result("pending", "存在额外图层，无法可靠判断壁纸遮挡");
     }
