@@ -44,4 +44,7 @@ D:\work\ai-codex-toolkit\ai-instructions\imagegen-sub2api.md
 中转地址与密钥从本机配置读取，请求前核对已授权目标；复用已有明确授权，不扩展到其它站点，不输出密钥。通用指令和快捷模板不写具体中转地址或密钥。
 
 仅在明确要求首次配置、更换中转站或排查环境时进入对应流程。日常生图不额外初始化、生成测试图或回写全局指令；不自动更换通道、降级模型或进行未经授权的计费重试。
+
+视频制作：
+仅在用户明确要求制作、续做、剪辑、重剪或导出视频成片时，读取并遵循 D:\work\ai-codex-toolkit\ai-instructions\video-production.md。
 ```
